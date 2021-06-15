@@ -57,7 +57,7 @@ def main():
 
         df['Current Health Factor:'] = df['healthFactor'].apply(lambda x: round(x,2))
 
-        reserve_data = protocol_provider.getReserveData(yvault_token).dict()
+        reserve_data = protocol_provider.getReserveData(yvault_token)
 
         df['Current Borrowing Costs:'] = "{}%".format(round(reserve_data[4]*10**-27,4)*100)
 
