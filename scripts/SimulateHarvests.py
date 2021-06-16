@@ -1,3 +1,4 @@
+from .TelegramBot import sendMessage
 import brownie
 from brownie import interface, accounts, web3, chain
 from brownie.network.event import _decode_logs
@@ -108,29 +109,36 @@ def main():
         )
         everythingOk = sharePriceOk and profitAndLossOk
 
-        print(strategyName)
-        print("--------------------------------------------------------------------")
-        print("Strategy address:        ", strategyAddress)
-        print("Token address:           ", tokenAddress)
-        print("Vault Address:           ", vaultAddress)
-        print("Strategist Address:      ", strategist)
-        print("Vault Name:              ", vaultName)
-        print("Strategy API Version:    ", strategyApiVersion)
-        print("Profit:                  ", profitInUnderlying)
-        print("Normalized profit:       ", profitInUsd)
-        print("Loss:                    ", lossDelta)
-        print("Last harvest:            ", lastHarvest)
-        print("Report delta:            ", reportDelta)
-        print("Estimated APR:           ", estimatedApr)
-        print("PPS percent change:      ", ppsPercentChange)
-        print("Previous PPS:            ", pricePerShareOriginal)
-        print("New PPS:                 ", pricePerShareAfterTenHours)
-        print("Desired ratio:           ", desiredRatio)
-        print("Actual ratio:            ", actualRatio)
-        print("Debt Outstanding change: ", debtOutstandingDelta)
-        print("Harvest trigger ready:   ", harvestTriggerReady)
-        print("Share price change OK:   ", sharePriceOk)
-        print("Profit/loss check OK:    ", profitAndLossOk)
-        print("Everything OK:           ", everythingOk)
-        print()
+        def boolDescription(bool):
+            return "PASSED" if bool else "FAILED"
+
+        if not everythingOk:
+            diagnostic_report = (
+                "ALERT\n"
+                f"{strategyName}\n"
+                f"Strategy address: {strategyAddress}\n"
+                f"Token address: {tokenAddress}\n"
+                f"Vault Address: {vaultAddress}\n"
+                f"Strategist Address: {strategist}\n"
+                f"Vault Name: {vaultName}\n"
+                f"Strategy API Version: {strategyApiVersion}\n"
+                f"Profit: {profitInUnderlying}\n"
+                f"Normalized profit: {profitInUsd}\n"
+                f"Loss: {lossDelta}\n"
+                f"Last harvest: {lastHarvest}\n"
+                f"Report delta: {reportDelta}\n"
+                f"Estimated APR: {estimatedApr}\n"
+                f"PPS percent change: {ppsPercentChange}\n"
+                f"Previous PPS: {pricePerShareOriginal}\n"
+                f"New PPS: {pricePerShareAfterTenHours}\n"
+                f"Desired ratio: {desiredRatio}\n"
+                f"Actual ratio: {actualRatio}\n"
+                f"Debt Outstanding change: {debtOutstandingDelta}\n"
+                f"Harvest trigger ready: {boolDescription(harvestTriggerReady)}\n"
+                f"Share price change: {boolDescription(sharePriceOk)}\n"
+                f"Profit/loss check: {boolDescription(profitAndLossOk)}\n"
+            )
+
+            sendMessage(diagnostic_report)
+
         chain.reset()
