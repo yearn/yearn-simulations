@@ -97,7 +97,7 @@ def main():
         profitInUsd = (
             f"${oracle.getNormalizedValueUsdc(tokenAddress, gainDelta) / 10 ** 6:,.2f}"
         )
-        profitInUnderlying = f"{gainDelta / 10**tokenDecimals:,.2f} {tokenSymbol}"
+        profitInUnderlying = f"{gainDelta} {tokenSymbol}"
 
         sharePriceOk = (
             ppsPercentChange >= 0
