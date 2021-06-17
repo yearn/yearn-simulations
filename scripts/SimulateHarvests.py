@@ -1,5 +1,4 @@
 from .TelegramBot import sendMessage
-from .TableFormatter import formatIntoTable
 import brownie
 from brownie import interface, accounts, web3, chain
 from brownie.network.event import _decode_logs
@@ -114,33 +113,31 @@ def main():
         def boolDescription(bool):
             return "PASSED" if bool else "FAILED"
 
-        df = pd.DataFrame(index=[''])
-
-        df["ALERT 🚨"] = datetime.now().isoformat()
-        df[f"{strategyName}"] = ""
-        df["Strategy address"] = f"{strategyAddress}"
-        df["Token address"] = f"{tokenAddress}"
-        df["Vault Address"] = f"{vaultAddress}"
-        df["Strategist Address"] = f"{strategist}"
-        df["Vault Name"] = f"{vaultName}"
-        df["Strategy API Version"] = f"{strategyApiVersion}"
-        df["Profit"] = f"{profitInUnderlying}"
-        df["Normalized profit"] = f"{profitInUsd}"
-        df["Loss"] = f"{lossDelta}"
-        df["Last harvest"] = f"{lastHarvest}"
-        df["Report delta"] = f"{reportDelta}"
-        df["Estimated APR"] = f"{estimatedApr}"
-        df["PPS percent change"] = f"{ppsPercentChange}"
-        df["Previous PPS"] = f"{pricePerShareOriginal / 10**tokenDecimals}"
-        df["New PPS"] = f"{pricePerShareAfterTenHours / 10**tokenDecimals}"
-        df["Desired ratio"] = f"{desiredRatio}"
-        df["Actual ratio"] = f"{actualRatio}"
-        df["Debt Outstanding change"] = f"{debtOutstandingDelta}"
-        df["Harvest trigger ready"] = f"{boolDescription(harvestTriggerReady)}"
-        df["Share price change"] = f"{boolDescription(sharePriceOk)}"
-        df["Profit/loss check"] = f"{boolDescription(profitAndLossOk)}"
-
-        sendMessage(df.T.to_string())
+        if not everythingOk:
+            df = pd.DataFrame(index=[''])
+            df["ALERT 🚨"] = datetime.now().isoformat()
+            df[f"{strategyName}"] = ""
+            df["Strategy address"] = f"{strategyAddress}"
+            df["Token address"] = f"{tokenAddress}"
+            df["Vault Address"] = f"{vaultAddress}"
+            df["Strategist Address"] = f"{strategist}"
+            df["Vault Name"] = f"{vaultName}"
+            df["Strategy API Version"] = f"{strategyApiVersion}"
+            df["Profit"] = f"{profitInUnderlying}"
+            df["Normalized profit"] = f"{profitInUsd}"
+            df["Loss"] = f"{lossDelta}"
+            df["Last harvest"] = f"{lastHarvest}"
+            df["Report delta"] = f"{reportDelta}"
+            df["Estimated APR"] = f"{estimatedApr}"
+            df["PPS percent change"] = f"{ppsPercentChange}"
+            df["Previous PPS"] = f"{pricePerShareOriginal / 10**tokenDecimals}"
+            df["New PPS"] = f"{pricePerShareAfterTenHours / 10**tokenDecimals}"
+            df["Desired ratio"] = f"{desiredRatio}"
+            df["Actual ratio"] = f"{actualRatio}"
+            df["Debt Outstanding change"] = f"{debtOutstandingDelta}"
+            df["Harvest trigger ready"] = f"{boolDescription(harvestTriggerReady)}"
+            df["Share price change"] = f"{boolDescription(sharePriceOk)}"
+            df["Profit/loss check"] = f"{boolDescription(profitAndLossOk)}"
+            sendMessage(df.T.to_string())
 
         chain.reset()
-        
