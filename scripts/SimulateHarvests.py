@@ -98,6 +98,9 @@ def main():
         profitInUsd = (
             f"${oracle.getNormalizedValueUsdc(tokenAddress, gainDelta) / 10 ** 6:,.2f}"
         )
+        lossInUsd = (
+            f"${oracle.getNormalizedValueUsdc(tokenAddress, lossDelta) / 10 ** 6:,.2f}"
+        )
         profitInUnderlying = f"{gainDelta} {tokenSymbol}"
 
         sharePriceOk = (
@@ -114,6 +117,8 @@ def main():
         if not everythingOk:
             df = pd.DataFrame(index=[''])
             df["ALERT 🚨"] = datetime.now().isoformat()
+            df[" "] = f""
+            df["----- STRATEGY DESCRIPTION-------"] = f""
             df[f"{strategyName}"] = ""
             df["Strategy address"] = f"{strategyAddress}"
             df["Token address"] = f"{tokenAddress}"
@@ -121,19 +126,26 @@ def main():
             df["Strategist Address"] = f"{strategist}"
             df["Vault Name"] = f"{vaultName}"
             df["Strategy API Version"] = f"{strategyApiVersion}"
-            df["Profit"] = f"{profitInUnderlying}"
-            df["Normalized profit"] = f"{profitInUsd}"
-            df["Loss"] = f"{lossDelta}"
+            df[" "] = f""
+            df["----- STRATEGY PARAMS-------"] = f""
+            df["Total Gain before"] = f"{gainBeforeHarvest / 10**tokenDecimals}"
+            df["Total Loss before"] = f"{lossBeforeHarvest / 10**tokenDecimals}"
+            df["Target debt ratio"] = f"{desiredRatio}"
+            df["Actual debt ratio"] = f"{actualRatio}"
+            df["Harvest trigger"] = f"{boolDescription(harvestTriggerReady)}"
+            df[" "] = f""
+            df["----- HARVEST SIMULATION DATA-------"] = f""
             df["Last harvest"] = f"{lastHarvest}"
-            df["Report delta"] = f"{reportDelta}"
+            df["Profit on harvest"] = f"{profitInUnderlying}"
+            df["Profit in USD"] = f"{profitInUsd}"
+            df["Loss on harvest"] = f"{lossDelta}"
+            df["Loss in USD"] = f"{lossInUsd}"
             df["Estimated APR"] = f"{estimatedApr}"
-            df["PPS percent change"] = f"{ppsPercentChange}"
             df["Previous PPS"] = f"{pricePerShareOriginal / 10**tokenDecimals}"
             df["New PPS"] = f"{pricePerShareAfterTenHours / 10**tokenDecimals}"
-            df["Desired ratio"] = f"{desiredRatio}"
-            df["Actual ratio"] = f"{actualRatio}"
-            df["Debt Outstanding change"] = f"{debtOutstandingDelta}"
-            df["Harvest trigger ready"] = f"{boolDescription(harvestTriggerReady)}"
+            df["PPS percent change"] = f"{ppsPercentChange}"
+            df[" "] = f""
+            df["----- HEALTH CHECKS-------"] = f""
             df["Share price change"] = f"{boolDescription(sharePriceOk)}"
             df["Profit/loss check"] = f"{boolDescription(profitAndLossOk)}"
             sendMessage(df.T.to_string())
