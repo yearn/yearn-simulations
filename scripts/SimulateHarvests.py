@@ -69,11 +69,11 @@ def main():
         assetsAfterHarvest = vault.totalAssets()
 
         # State delta
-        debtDelta = debtAfterHarvest - debtBeforeHarvest
-        gainDelta = gainAfterHarvest - gainBeforeHarvest
-        lossDelta = lossAfterHarvest - lossBeforeHarvest
+        debtDelta = (debtAfterHarvest / 10**tokenDecimals) - (debtBeforeHarvest / 10**tokenDecimals)
+        gainDelta = (gainAfterHarvest / 10**tokenDecimals) - (gainBeforeHarvest / 10**tokenDecimals)
+        lossDelta = (lossAfterHarvest / 10**tokenDecimals) - (lossBeforeHarvest / 10**tokenDecimals)
         debtOutstandingDelta = (
-            debtOutstandingAfterHarvest - debtOutstandingBeforeHarvest
+            (debtOutstandingAfterHarvest / 10**tokenDecimals) - (debtOutstandingBeforeHarvest / 10**tokenDecimals)
         )
         reportDelta = reportAfterHarvest - reportBeforeHarvest
         assetsDelta = assetsAfterHarvest - assetsBeforeHarvest
@@ -87,9 +87,9 @@ def main():
                 percent = gainDelta / debtBeforeHarvest
         estimatedApr = percent * 3.154e7 / reportDelta
         lastHarvest = format_timedelta(reportDelta, locale="en_US") + " ago"
-        desiredRatio = "{:.2%}".format(strategyStatistics.dict()["debtRatio"] / 10000)
-        actualRatio = "{:.2%}".format(actualRatio)
-        estimatedApr = "{:.0%}".format(estimatedApr)
+        desiredRatio = "{:.4%}".format(strategyStatistics.dict()["debtRatio"] / 10000)
+        actualRatio = "{:.4%}".format(actualRatio)
+        estimatedApr = "{:.4%}".format(estimatedApr)
         ppsPercentChange = (
             ((pricePerShareAfterTenHours - pricePerShareOriginal))
             / pricePerShareOriginal
