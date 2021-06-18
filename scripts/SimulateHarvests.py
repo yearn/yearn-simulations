@@ -112,7 +112,10 @@ def main():
         everythingOk = sharePriceOk and profitAndLossOk
 
         def boolDescription(bool):
+            return "TRUE" if bool else "FALSE"
+        def passFail(bool):
             return "PASSED" if bool else "FAILED"
+        
 
         if not everythingOk:
             df = pd.DataFrame(index=[''])
@@ -146,8 +149,8 @@ def main():
             df["PPS percent change"] = f"{ppsPercentChange}"
             df[" "] = f""
             df["----- HEALTH CHECKS-------"] = f""
-            df["Share price change"] = f"{boolDescription(sharePriceOk)}"
-            df["Profit/loss check"] = f"{boolDescription(profitAndLossOk)}"
+            df["Share price change"] = f"{passFail(sharePriceOk)}"
+            df["Profit/loss check"] = f"{passFail(profitAndLossOk)}"
             sendMessage(df.T.to_string())
 
         chain.reset()
