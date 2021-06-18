@@ -105,9 +105,7 @@ def main():
             and ppsPercentChange < 1
             and pricePerShareAfterTenHours >= 1 ** tokenDecimals
         )
-        profitAndLossOk = (gainDelta > 0 and lossDelta == 0) or (
-            lossDelta > 0 and gainDelta == 0
-        )
+        profitAndLossOk = gainDelta >= 0 and lossDelta == 0
         everythingOk = sharePriceOk and profitAndLossOk
 
         def boolDescription(bool):
