@@ -101,7 +101,7 @@ def main():
                     percent2 = -1 * (lossDelta + totalFeesDelta) / debtBeforeHarvest
                 else:
                     percent = gainDelta / debtBeforeHarvest
-                    percent2 = gainDelta - totalFeesDelta / debtBeforeHarvest
+                    percent2 = (gainDelta - totalFeesDelta) / debtBeforeHarvest
             estAprBeforeFees = percent * 3.154e7 / reportDelta
             estAprAfterFees = percent2 * 3.154e7 / reportDelta
             lastHarvest = format_timedelta(reportDelta, locale="en_US") + " ago"
