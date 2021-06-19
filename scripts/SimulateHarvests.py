@@ -8,6 +8,7 @@ import pandas as pd
 
 def main():
     daddy = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
+    treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
     strategiesHelperAddress = "0xae813841436fe29b95a14AC701AFb1502C4CB789"
     oracleAddress = "0x83d95e0D5f402511dB06817Aff3f9eA88224B030"
     oracle = interface.IOracle(oracleAddress)
@@ -41,6 +42,8 @@ def main():
         pricePerShareOriginal = vault.pricePerShare()
         assetsBeforeHarvest = vault.totalAssets()
         actualRatio = debtBeforeHarvest / (assetsBeforeHarvest + 1)
+        treasuryFeesBefore = vault.balanceOf(treasury)
+        strategistFeesBefore = vault.balanceOf(strategy)
 
         try:
             harvestTriggerReady = strategy.harvestTrigger(2_000_000 * 300 * 1e9)
@@ -67,6 +70,8 @@ def main():
         reportAfterHarvest = strategyStatistics.dict()["lastReport"]
         debtOutstandingAfterHarvest = vault.debtOutstanding(strategyAddress)
         assetsAfterHarvest = vault.totalAssets()
+        treasuryFeesAfter = vault.balanceOf(treasury)
+        strategistFeesAfter = vault.balanceOf(strategy)
 
         # State delta
         debtDelta = (debtAfterHarvest / 10**tokenDecimals) - (debtBeforeHarvest / 10**tokenDecimals)
@@ -77,6 +82,10 @@ def main():
         )
         reportDelta = reportAfterHarvest - reportBeforeHarvest
         assetsDelta = assetsAfterHarvest - assetsBeforeHarvest
+        npps = vault.pricePerShare() / 10**tokenDecimals
+        treasuryFeesDelta = (treasuryFeesAfter - treasuryFeesBefore) / 10**tokenDecimals * npps
+        strategistFeesDelta = (strategistFeesAfter - strategistFeesBefore) / 10**tokenDecimals * npps
+        totalFeesDelta = (treasuryFeesDelta + strategistFeesDelta)
 
         # Calculate and format results
         percent = 0
@@ -145,6 +154,9 @@ def main():
             df["Loss on harvest"] = f"{lossDelta}"
             df["Loss in USD"] = f"{lossInUsd}"
             df["Debt delta"] = f"{debtDelta}"
+            df["Treasury fees"] = f"{treasuryFeesDelta}"
+            df["Strategist fees"] = f"{strategistFeesDelta}"
+            df["Total fees"] = f"{totalFeesDelta}"
             df["Estimated APR"] = f"{estimatedApr}"
             df["Previous PPS"] = f"{pricePerShareOriginal / 10**tokenDecimals}"
             df["New PPS"] = f"{pricePerShareAfterTenHours / 10**tokenDecimals}"
