@@ -16,7 +16,9 @@ def main():
     strategiesAddresses = strategiesHelper.assetsStrategiesAddresses()
     for strategyAddress in strategiesAddresses:
         strategy = interface.IStrategy(strategyAddress)
-        if strategy.isActive():
+        tokenDecimals = token.decimals()
+        dust = 10**(token.decimals() / 2)
+        if strategy.isActive() and strategy.estimatedTotalAssets() > dust:
             strategyName = strategy.name()
             print(strategyName + " - " + strategyAddress)
             strategyApiVersion = strategy.apiVersion()
@@ -94,7 +96,7 @@ def main():
             if debtBeforeHarvest > 0:
                 if lossDelta > gainDelta:
                     percent = -1 * lossDelta / debtBeforeHarvest
-                    percent2 = -1 * lossDelta - totalFeesDelta / debtBeforeHarvest
+                    percent2 = -1 * (lossDelta + totalFeesDelta) / debtBeforeHarvest
                 else:
                     percent = gainDelta / debtBeforeHarvest
                     percent2 = gainDelta - totalFeesDelta / debtBeforeHarvest
