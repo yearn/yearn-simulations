@@ -15,8 +15,8 @@ def main():
     strategiesHelper = interface.IStrategiesHelper(strategiesHelperAddress)
     strategiesAddresses = strategiesHelper.assetsStrategiesAddresses()
     for strategyAddress in strategiesAddresses:
+        strategy = interface.IStrategy(strategyAddress)
         if strategy.isActive():
-            strategy = interface.IStrategy(strategyAddress)
             strategyName = strategy.name()
             strategyApiVersion = strategy.apiVersion()
             strategist = strategy.strategist()
