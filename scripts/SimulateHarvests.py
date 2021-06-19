@@ -93,9 +93,12 @@ def main():
             if debtBeforeHarvest > 0:
                 if lossDelta > gainDelta:
                     percent = -1 * lossDelta / debtBeforeHarvest
+                    percent2 = -1 * lossDelta - totalFeesDelta / debtBeforeHarvest
                 else:
                     percent = gainDelta / debtBeforeHarvest
-            estimatedApr = percent * 3.154e7 / reportDelta
+                    percent2 = gainDelta - totalFeesDelta / debtBeforeHarvest
+            estAprBeforeFees = percent * 3.154e7 / reportDelta
+            estAprAfterFees = percent2 * 3.154e7 / reportDelta
             lastHarvest = format_timedelta(reportDelta, locale="en_US") + " ago"
             desiredRatio = "{:.4%}".format(strategyStatistics.dict()["debtRatio"] / 10000)
             actualRatio = "{:.4%}".format(actualRatio)
@@ -158,7 +161,8 @@ def main():
                 df["Treasury fees"] = f"{treasuryFeesDelta}"
                 df["Strategist fees"] = f"{strategistFeesDelta}"
                 df["Total fees"] = f"{totalFeesDelta}"
-                df["Estimated APR"] = f"{estimatedApr}"
+                df["APR before fees"] = f"{estAprBeforeFees}"
+                df["APR after fees"] = f"{estAprAfterFees}"
                 df["Previous PPS"] = f"{pricePerShareOriginal / 10**tokenDecimals}"
                 df["New PPS"] = f"{pricePerShareAfterTenHours / 10**tokenDecimals}"
                 df["PPS percent change"] = f"{ppsPercentChange}"
