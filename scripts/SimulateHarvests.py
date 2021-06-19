@@ -126,7 +126,7 @@ def main():
             return "PASSED" if bool else "FAILED"
         
 
-        if not everythingOk:
+        if not strategy.isActive() and everythingOk:
             df = pd.DataFrame(index=[''])
             df["ALERT 🚨"] = datetime.now().isoformat()
             df[" "] = f""
