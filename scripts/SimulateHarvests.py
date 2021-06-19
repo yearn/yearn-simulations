@@ -103,7 +103,8 @@ def main():
             lastHarvest = format_timedelta(reportDelta, locale="en_US") + " ago"
             desiredRatio = "{:.4%}".format(strategyStatistics.dict()["debtRatio"] / 10000)
             actualRatio = "{:.4%}".format(actualRatio)
-            estimatedApr = "{:.4%}".format(estimatedApr)
+            estAprBeforeFees = "{:.4%}".format(estAprBeforeFees)
+            estAprAfterFees = "{:.4%}".format(estAprAfterFees)
             ppsPercentChange = (
                 ((pricePerShareAfterTenHours - pricePerShareOriginal))
                 / pricePerShareOriginal
