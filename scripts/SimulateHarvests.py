@@ -16,6 +16,10 @@ def main():
     strategiesAddresses = strategiesHelper.assetsStrategiesAddresses()
     for strategyAddress in strategiesAddresses:
         strategy = interface.IStrategy(strategyAddress)
+        vaultAddress = strategy.vault()
+        vault = interface.IVault032(vaultAddress)
+        tokenAddress = vault.token()
+        token = interface.IERC20(tokenAddress)
         tokenDecimals = token.decimals()
         dust = 10**(token.decimals() / 2)
         if strategy.isActive() and strategy.estimatedTotalAssets() > dust:
@@ -23,11 +27,9 @@ def main():
             print(strategyName + " - " + strategyAddress)
             strategyApiVersion = strategy.apiVersion()
             strategist = strategy.strategist()
-            vaultAddress = strategy.vault()
-            vault = interface.IVault032(vaultAddress)
+            
             vaultName = vault.name()
-            tokenAddress = vault.token()
-            token = interface.IERC20(tokenAddress)
+            
             tokenSymbol = token.symbol()
             tokenDecimals = token.decimals()
             vaultVersion = int(vault.apiVersion().replace(".", ""))
