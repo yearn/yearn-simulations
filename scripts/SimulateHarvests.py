@@ -18,6 +18,7 @@ def main():
         strategy = interface.IStrategy(strategyAddress)
         if strategy.isActive():
             strategyName = strategy.name()
+            print(strategyName + " - " + strategyAddress)
             strategyApiVersion = strategy.apiVersion()
             strategist = strategy.strategist()
             vaultAddress = strategy.vault()
