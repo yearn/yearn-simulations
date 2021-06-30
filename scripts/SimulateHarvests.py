@@ -1,5 +1,7 @@
 from .TelegramBot import sendMessage
 import brownie
+from utils import dotdict
+import json
 from brownie import interface, accounts, web3, chain
 from brownie.network.event import _decode_logs
 from babel.dates import format_timedelta
@@ -7,175 +9,221 @@ from datetime import datetime
 import pandas as pd
 
 def main():
-    daddy = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
+    gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
     treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
     strategiesHelperAddress = "0xae813841436fe29b95a14AC701AFb1502C4CB789"
     oracleAddress = "0x83d95e0D5f402511dB06817Aff3f9eA88224B030"
     oracle = interface.IOracle(oracleAddress)
-    strategiesHelper = interface.IStrategiesHelper(strategiesHelperAddress)
-    strategiesAddresses = strategiesHelper.assetsStrategiesAddresses()
-    for strategyAddress in strategiesAddresses:
-        strategy = interface.IStrategy(strategyAddress)
-        vaultAddress = strategy.vault()
-        vault = interface.IVault032(vaultAddress)
-        tokenAddress = vault.token()
-        token = interface.IERC20(tokenAddress)
-        tokenDecimals = token.decimals()
-        dust = 10**(token.decimals() / 2)
-        if strategy.isActive() and strategy.estimatedTotalAssets() > dust:
-            strategyName = strategy.name()
-            print(strategyName + " - " + strategyAddress)
-            strategyApiVersion = strategy.apiVersion()
-            strategist = strategy.strategist()
-            
-            vaultName = vault.name()
-            
-            tokenSymbol = token.symbol()
-            tokenDecimals = token.decimals()
-            vaultVersion = int(vault.apiVersion().replace(".", ""))
-            if vaultVersion == 30:
-                vault = interface.IVault030(vaultAddress)
-            if vaultVersion == 31:
-                vault = interface.IVault031(vaultAddress)
+    strategies_helper = interface.IStrategiesHelper(strategiesHelperAddress)
+    strategies_addresses = strategies_helper.assetsStrategiesAddresses()
+    for strategy_address in strategies_addresses:
+        data = dotdict({})
+        data.pre = dotdict({}) # Here is where we'll keep all the pre-harvest data
+        data.post = dotdict({}) # Here is where we'll keep all the post-harvest data
+        data.custom = dotdict({}) # Here is where we'll keep all the custom strategy data
+        data.config = dotdict({}) # Define configuration options
+        data.strategy_address = strategy_address
+        data.gov = gov
+        data.treasury = treasury
+        data.config.hours_to_wait = 10
+        data.config.blocks_to_mine = 1
+        
+        (data) = pre_harvest(data)
+        # (data) = pre_harvest_custom(data)
+        if data.pre.debt > 0:
+            (data) = harvest(data)
+            if data.harvest_success:
+                (data) = post_harvest(data)
+                # (data) = post_harvest_custom(data)
+                # (data) = configure_alerts(data)
+                # (data) = configure_alerts_custom(data)
+                (data) = build_telegram_message(data)
+        chain.reset()
+        continue
 
-            # State before harvest
-            strategyStatistics = vault.strategies(strategy)
-            debtBeforeHarvest = strategyStatistics.dict()["totalDebt"]
-            gainBeforeHarvest = strategyStatistics.dict()["totalGain"]
-            lossBeforeHarvest = strategyStatistics.dict()["totalLoss"]
-            reportBeforeHarvest = strategyStatistics.dict()["lastReport"]
-            debtOutstandingBeforeHarvest = vault.debtOutstanding(strategyAddress)
-            pricePerShareOriginal = vault.pricePerShare()
-            assetsBeforeHarvest = vault.totalAssets()
-            actualRatio = debtBeforeHarvest / (assetsBeforeHarvest + 1)
-            treasuryFeesBefore = vault.balanceOf(treasury)
-            strategistFeesBefore = vault.balanceOf(strategy)
+def pre_harvest(data):
+    # Set basic strat/vault/token data values
+    strategy_address = data.strategy_address
+    strategy = interface.IStrategy(strategy_address)
+    data.strategy = strategy
+    data.vault_address = strategy.vault()
+    vault = interface.IVault032(data.vault_address)
+    data.vault = vault
+    vault_address = strategy.vault()
+    data.token_address = data.vault.token()
+    data.token = interface.IERC20(data.token_address)
+    data.token_decimals = data.token.decimals()
+    data.token_symbol = data.token.symbol()
+    dust = 10**(data.token_decimals / 2)
+    if strategy.isActive() and strategy.estimatedTotalAssets() > dust:
+        data.strategy_name = strategy.name()
+        data.vault_name = vault.name()
+        print(data.strategy_name + " - " + strategy_address)
+        data.strategy_api_version = strategy.apiVersion()
+        data.strategist = strategy.strategist()
+        vault_version = int(vault.apiVersion().replace(".", ""))
+        if vault_version == 30:
+            vault = interface.IVault030(vault_address)
+        if vault_version == 31:
+            vault = interface.IVault031(vault_address)
 
-            try:
-                harvestTriggerReady = strategy.harvestTrigger(2_000_000 * 300 * 1e9)
-            except:
-                harvestTriggerReady = "Broken"
+        # State before harvest
+        strategy_params = vault.strategies(strategy)
+        data.pre.debt = strategy_params.dict()["totalDebt"]
+        data.pre.gain = strategy_params.dict()["totalGain"]
+        data.pre.loss = strategy_params.dict()["totalLoss"]
+        data.pre.last_report = strategy_params.dict()["lastReport"]
+        data.pre.desired_ratio = "{:.4%}".format(strategy_params.dict()["debtRatio"] / 10000)
+        data.pre.debt_outstanding = vault.debtOutstanding(strategy_address)
+        data.pre.price_per_share = vault.pricePerShare()
+        data.pre.total_assets = vault.totalAssets()
+        data.pre.actual_ratio = data.pre.debt / (data.pre.total_assets + 1)
+        data.pre.treasury_fee_balance = vault.balanceOf(data.treasury)
+        data.pre.strategist_fee_balance = vault.balanceOf(strategy)
+        try:
+            data.pre.harvest_trigger = strategy.harvest_trigger(2_000_000 * 300 * 1e9)
+        except:
+            data.pre.harvest_trigger_ready = "Broken"
+    return data
 
-            # Perform harvest and wait
-            hoursToWait = 10
-            try:
-                strategy.harvest({"from": daddy})
-            except:
-                print("Can't harvest", strategyAddress)
-                chain.reset()
-                continue
-            chain.sleep(60 * 60 * hoursToWait)
-            chain.mine(1)
+def harvest(data):
+    # Perform harvest and wait
+    try:
+        data.strategy.harvest({"from": data.gov})
+        data.harvest_success = True
+    except:
+        print("Can't harvest", data.strategy_name, data.strategy_address)
+        data.harvest_success = False
+    
+    chain.sleep(60 * 60 * data.config.hours_to_wait)
+    chain.mine(data.config.blocks_to_mine)
 
-            # State after harvest
-            strategyStatistics = vault.strategies(strategy)
-            pricePerShareAfterTenHours = vault.pricePerShare()
-            debtAfterHarvest = strategyStatistics.dict()["totalDebt"]
-            gainAfterHarvest = strategyStatistics.dict()["totalGain"]
-            lossAfterHarvest = strategyStatistics.dict()["totalLoss"]
-            reportAfterHarvest = strategyStatistics.dict()["lastReport"]
-            debtOutstandingAfterHarvest = vault.debtOutstanding(strategyAddress)
-            assetsAfterHarvest = vault.totalAssets()
-            treasuryFeesAfter = vault.balanceOf(treasury)
-            strategistFeesAfter = vault.balanceOf(strategy)
+    return data
 
-            # State delta
-            debtDelta = (debtAfterHarvest / 10**tokenDecimals) - (debtBeforeHarvest / 10**tokenDecimals)
-            gainDelta = (gainAfterHarvest / 10**tokenDecimals) - (gainBeforeHarvest / 10**tokenDecimals)
-            lossDelta = (lossAfterHarvest / 10**tokenDecimals) - (lossBeforeHarvest / 10**tokenDecimals)
-            debtOutstandingDelta = (
-                (debtOutstandingAfterHarvest / 10**tokenDecimals) - (debtOutstandingBeforeHarvest / 10**tokenDecimals)
-            )
-            reportDelta = reportAfterHarvest - reportBeforeHarvest
-            assetsDelta = assetsAfterHarvest - assetsBeforeHarvest
-            npps = vault.pricePerShare() / 10**tokenDecimals
-            treasuryFeesDelta = (treasuryFeesAfter - treasuryFeesBefore) / 10**tokenDecimals * npps
-            strategistFeesDelta = (strategistFeesAfter - strategistFeesBefore) / 10**tokenDecimals * npps
-            totalFeesDelta = (treasuryFeesDelta + strategistFeesDelta)
+def post_harvest(data):
+    strategy_address = data.strategy_address
 
-            # Calculate and format results
-            percent = 0
-            if debtBeforeHarvest > 0:
-                if lossDelta > gainDelta:
-                    percent = -1 * lossDelta / debtBeforeHarvest
-                    percent2 = -1 * (lossDelta + totalFeesDelta) / debtBeforeHarvest
-                else:
-                    percent = gainDelta / debtBeforeHarvest
-                    percent2 = (gainDelta - totalFeesDelta) / debtBeforeHarvest
-            estAprBeforeFees = percent * 3.154e7 / reportDelta
-            estAprAfterFees = percent2 * 3.154e7 / reportDelta
-            lastHarvest = format_timedelta(reportDelta, locale="en_US") + " ago"
-            desiredRatio = "{:.4%}".format(strategyStatistics.dict()["debtRatio"] / 10000)
-            actualRatio = "{:.4%}".format(actualRatio)
-            estAprBeforeFees = "{:.4%}".format(estAprBeforeFees)
-            estAprAfterFees = "{:.4%}".format(estAprAfterFees)
-            ppsPercentChange = (
-                ((pricePerShareAfterTenHours - pricePerShareOriginal))
-                / pricePerShareOriginal
-            ) * 100
+    # State after harvest
+    strategy_params = data.vault.strategies(strategy_address)
+    data.post.price_per_share = data.vault.pricePerShare()
+    data.post.debt = strategy_params.dict()["totalDebt"]
+    data.post.gain = strategy_params.dict()["totalGain"]
+    data.post.loss = strategy_params.dict()["totalLoss"]
+    data.post.desired_ratio = "{:.4%}".format(strategy_params.dict()["debtRatio"] / 10000)
+    data.post.last_report = strategy_params.dict()["lastReport"]
+    data.post.debt_outstanding = data.vault.debtOutstanding(data.strategy_address)
+    data.post.total_assets = data.vault.totalAssets()
+    data.post.treasury_fee_balance = data.vault.balanceOf(data.treasury)
+    data.post.strategist_fee_balance = data.vault.balanceOf(data.strategy_address)
 
-            profitInUsd = (
-                f"${oracle.getNormalizedValueUsdc(tokenAddress, gainDelta) / 10 ** 6:,.2f}"
-            )
-            lossInUsd = (
-                f"${oracle.getNormalizedValueUsdc(tokenAddress, lossDelta) / 10 ** 6:,.2f}"
-            )
-            profitInUnderlying = f"{gainDelta} {tokenSymbol}"
+    # State delta
+    d = data.token_decimals
+    data.post.debt_delta = (data.post.debt - data.pre.debt) / 10**d
+    data.post.gain_delta = (data.post.gain - data.pre.gain) / 10**d
+    data.post.loss_delta = (data.post.loss - data.pre.loss) / 10**d
+    data.post.debt_outstanding_delta = (
+        (data.post.debt_outstanding - data.pre.debt_outstanding) / 10**d
+    )
+    data.post.last_report_delta = data.post.last_report - data.pre.last_report
+    data.time_since_last_harvest = format_timedelta(data.post.last_report_delta, locale="en_US") + " ago"
+    data.post.total_assets_delta = data.post.total_assets - data.pre.total_assets
+    data.post.price_per_share_in_decimals = data.vault.pricePerShare() / 10**d
+    pps = data.post.price_per_share_in_decimals
+    data.post.treasury_fee_delta = (data.post.treasury_fee_balance - data.pre.treasury_fee_balance) / 10**d * pps
+    data.post.strategist_fee_delta = (data.post.strategist_fee_balance - data.pre.strategist_fee_balance) / 10**d * pps
+    data.post.total_fee_delta = (data.post.treasury_fee_delta + data.post.strategist_fee_delta)
 
-            sharePriceOk = (
-                ppsPercentChange >= 0
-                and ppsPercentChange < 1
-                and pricePerShareAfterTenHours >= 1 ** tokenDecimals
-            )
-            profitAndLossOk = gainDelta >= 0 and lossDelta == 0
-            everythingOk = sharePriceOk and profitAndLossOk
+    # Calculate and format results
+    percent = 0
+    if data.pre.debt > 0:
+        if data.post.loss_delta > data.post.gain_delta:
+            percent = -1 * data.post.loss_delta / data.pre.debt
+            percent2 = -1 * (data.post.loss_delta + data.post.total_fee_delta) / data.pre.debt
+        else:
+            percent = data.post.gain_delta / data.pre.debt
+            percent2 = (data.post.gain_delta - data.post.total_fee_delta) / data.pre.debt
+    data.post.est_apr_before_fees = percent * 3.154e7 / data.post.last_report_delta
+    data.post.est_apr_after_fees = percent2 * 3.154e7 / data.post.last_report_delta
+    data.post.pps_percent_change = (
+        (data.post.price_per_share - data.pre.price_per_share)
+        / data.pre.price_per_share
+    ) * 100
 
-            def boolDescription(bool):
-                return "TRUE" if bool else "FALSE"
-            def passFail(bool):
-                return "PASSED" if bool else "FAILED"
+    return data
+    
+def build_telegram_message(data):
+    
+    est_apr_before_fees = "{:.4%}".format(data.post.est_apr_before_fees)
+    est_apr_after_fees = "{:.4%}".format(data.post.est_apr_after_fees)
+    
+
+    # profitInUsd = (
+    #     f"${oracle.getNormalizedValueUsdc(tokenAddress, gainDelta) / 10 ** 6:,.2f}"
+    # )
+    # lossInUsd = (
+    #     f"${oracle.getNormalizedValueUsdc(tokenAddress, lossDelta) / 10 ** 6:,.2f}"
+    # )
+
+    profitInUnderlying = f"{data.post.gain_delta} {data.token_symbol}"
+
+    share_price_OK = (
+        data.post.pps_percent_change >= 0
+        and data.post.price_per_share < 1
+        and data.post.price_per_share >= 1 ** data.token_symbol
+    )
+    profit_and_loss_OK = data.post.gain_delta >= 0 and data.post.loss_delta == 0
+    everything_OK = share_price_OK and profit_and_loss_OK
+
+    def boolDescription(bool):
+        return "TRUE" if bool else "FALSE"
+    def passFail(bool):
+        return "PASSED" if bool else "FAILED"
 
 
-            if not everythingOk:
-                df = pd.DataFrame(index=[''])
-                df["ALERT 🚨"] = datetime.now().isoformat()
-                df[" "] = f""
-                df["----- STRATEGY DESCRIPTION-------"] = f""
-                df[f"{strategyName}"] = ""
-                df["Vault Name"] = f"{vaultName}"
-                df["Strategy API Version"] = f"{strategyApiVersion}"
-                df["Strategy address"] = f"{strategyAddress}"
-                df["Token address"] = f"{tokenAddress}"
-                df["Vault Address"] = f"{vaultAddress}"
-                df["Strategist Address"] = f"{strategist}"
-                df[" "] = f""
-                df["----- STRATEGY PARAMS-------"] = f""
-                df["Total Debt before"] = f"{debtBeforeHarvest / 10**tokenDecimals}"
-                df["Total Gain before"] = f"{gainBeforeHarvest / 10**tokenDecimals}"
-                df["Total Loss before"] = f"{lossBeforeHarvest / 10**tokenDecimals}"
-                df["Target debt ratio"] = f"{desiredRatio}"
-                df["Actual debt ratio"] = f"{actualRatio}"
-                df["Harvest trigger"] = f"{boolDescription(harvestTriggerReady)}"
-                df[" "] = f""
-                df["----- HARVEST SIMULATION DATA-------"] = f""
-                df["Last harvest"] = f"{lastHarvest}"
-                df["Profit on harvest"] = f"{profitInUnderlying}"
-                df["Profit in USD"] = f"{profitInUsd}"
-                df["Loss on harvest"] = f"{lossDelta}"
-                df["Loss in USD"] = f"{lossInUsd}"
-                df["Debt delta"] = f"{debtDelta}"
-                df["Treasury fees"] = f"{treasuryFeesDelta}"
-                df["Strategist fees"] = f"{strategistFeesDelta}"
-                df["Total fees"] = f"{totalFeesDelta}"
-                df["APR before fees"] = f"{estAprBeforeFees}"
-                df["APR after fees"] = f"{estAprAfterFees}"
-                df["Previous PPS"] = f"{pricePerShareOriginal / 10**tokenDecimals}"
-                df["New PPS"] = f"{pricePerShareAfterTenHours / 10**tokenDecimals}"
-                df["PPS percent change"] = f"{ppsPercentChange}"
-                df[" "] = f""
-                df["----- HEALTH CHECKS-------"] = f""
-                df["Share price change"] = f"{passFail(sharePriceOk)}"
-                df["Profit/loss check"] = f"{passFail(profitAndLossOk)}"
-                sendMessage(df.T.to_string())
+    if not everything_OK:
+        df = pd.DataFrame(index=[''])
+        df["ALERT 🚨"] = datetime.now().isoformat()
+        df[" "] = f""
+        df["----- STRATEGY DESCRIPTION-------"] = f""
+        df[f"{data.strategy_name}"] = ""
+        df["Vault Name"] = f"{data.vault_name}"
+        df["Strategy API Version"] = f"{data.strategy.apiVersion()}"
+        df["Strategy address"] = f"{data.strategy_address}"
+        df["Token address"] = f"{data.token_address}"
+        df["Vault Address"] = f"{data.vault_address}"
+        df["Strategist Address"] = f"{data.strategist}"
+        df[" "] = f""
+        df["----- STRATEGY PARAMS-------"] = f""
+        df["Total Debt before"] = f"{data.pre.debt / 10**data.token_decimals}"
+        df["Total Gain before"] = f"{data.pre.gain / 10**data.token_decimals}"
+        df["Total Loss before"] = f"{data.pre.loss / 10**data.token_decimals}"
+        df["Target debt ratio"] = f"{data.pre.desired_ratio}"
+        df["Actual debt ratio"] = f"{data.pre.actual_ratio}"
+        df["Harvest trigger"] = f"{boolDescription(data.pre.harvest_trigger)}"
+        df[" "] = f""
+        df["----- HARVEST SIMULATION DATA-------"] = f""
+        df["Last harvest"] = f"{data.time_since_last_harvest}"
+        df["Profit on harvest"] = f"{profitInUnderlying}"
+        # df["Profit in USD"] = f"{profitInUsd}"
+        df["Loss on harvest"] = f"{data.post.loss_delta}"
+        # df["Loss in USD"] = f"{lossInUsd}"
+        df["Debt delta"] = f"{data.post.debt_delta}"
+        df["Treasury fees"] = f"{data.post.treasury_fee_delta}"
+        df["Strategist fees"] = f"{data.post.strategist_fee_delta}"
+        df["Total fees"] = f"{data.post.total_fee_delta}"
+        df["APR before fees"] = f"{est_apr_before_fees}"
+        df["APR after fees"] = f"{est_apr_after_fees}"
+        df["Previous PPS"] = f"{data.pre.price_per_share / 10**data.token_decimals}"
+        df["New PPS"] = f"{data.post.price_per_share / 10**data.token_decimals}"
+        df["PPS percent change"] = f"{data.pps_percent_change}"
+        df[" "] = f""
+        df["----- HEALTH CHECKS-------"] = f""
+        df["Share price change"] = f"{passFail(share_price_OK)}"
+        df["Profit/loss check"] = f"{passFail(profit_and_loss_OK)}"
 
-            chain.reset()
+        sendMessage(df.T.to_string())
+
+    return data
+
+def generate_alerts(strategy_address, data, custom):
+    test = "test"
