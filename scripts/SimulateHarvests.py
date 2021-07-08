@@ -2,6 +2,7 @@ from .TelegramBot import sendMessage
 import brownie
 from utils import dotdict
 import json
+import sys
 from brownie import interface, accounts, web3, chain
 from brownie.network.event import _decode_logs
 from babel.dates import format_timedelta
@@ -9,13 +10,31 @@ from datetime import datetime
 import pandas as pd
 
 def main():
+    helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
+    oracle_address = "0x83d95e0D5f402511dB06817Aff3f9eA88224B030"
+    vault = "0xA696a63cc78DfFa1a63E9E50587C197387FF6C7E"
+    # single_address()
+    get_all_vault_strats(vault,helper_address,oracle_address)
+
+def single_address():
+    address = "0xf726472B7BE7461001df396C55CAdB1870c78dAE"
+    simulation_iterator([address])
+
+def get_all_vault_strats(vault_address, helper_address, oracle_address):
+    oracle = interface.IOracle(oracle_address)
+    strategies_helper = interface.IStrategiesHelper(helper_address)
+    strategies_addresses = strategies_helper.assetStrategiesAddresses(vault_address)
+    simulation_iterator(strategies_addresses)
+
+def get_all_addresses(helper_address, oracle_address):
+    oracle = interface.IOracle(oracle_address)
+    strategies_helper = interface.IStrategiesHelper(helper_address)
+    strategies_addresses = strategies_helper.assetsStrategiesAddresses()
+    simulation_iterator(strategies_addresses)
+
+def simulation_iterator(strategies_addresses):
     gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
     treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
-    strategiesHelperAddress = "0xae813841436fe29b95a14AC701AFb1502C4CB789"
-    oracleAddress = "0x83d95e0D5f402511dB06817Aff3f9eA88224B030"
-    oracle = interface.IOracle(oracleAddress)
-    strategies_helper = interface.IStrategiesHelper(strategiesHelperAddress)
-    strategies_addresses = strategies_helper.assetsStrategiesAddresses()
     for strategy_address in strategies_addresses:
         data = dotdict({})
         data.pre = dotdict({}) # Here is where we'll keep all the pre-harvest data
@@ -30,7 +49,7 @@ def main():
         
         (data) = pre_harvest(data)
         # (data) = pre_harvest_custom(data)
-        if data.pre.debt > 0:
+        if data.pre.debt is not None and data.pre.debt > 0:
             (data) = harvest(data)
             if data.harvest_success:
                 (data) = post_harvest(data)
@@ -40,6 +59,8 @@ def main():
                 (data) = build_telegram_message(data)
         chain.reset()
         continue
+
+
 
 def pre_harvest(data):
     # Set basic strat/vault/token data values
@@ -73,11 +94,11 @@ def pre_harvest(data):
         data.pre.gain = strategy_params.dict()["totalGain"]
         data.pre.loss = strategy_params.dict()["totalLoss"]
         data.pre.last_report = strategy_params.dict()["lastReport"]
-        data.pre.desired_ratio = "{:.4%}".format(strategy_params.dict()["debtRatio"] / 10000)
+        data.pre.desired_ratio = "{:.3%}".format(strategy_params.dict()["debtRatio"] / 10000)
         data.pre.debt_outstanding = vault.debtOutstanding(strategy_address)
         data.pre.price_per_share = vault.pricePerShare()
         data.pre.total_assets = vault.totalAssets()
-        data.pre.actual_ratio = data.pre.debt / (data.pre.total_assets + 1)
+        data.pre.actual_ratio = "{:.3%}".format(data.pre.debt / (data.pre.total_assets + 1) * 100)
         data.pre.treasury_fee_balance = vault.balanceOf(data.treasury)
         data.pre.strategist_fee_balance = vault.balanceOf(strategy)
         try:
@@ -164,12 +185,12 @@ def build_telegram_message(data):
     #     f"${oracle.getNormalizedValueUsdc(tokenAddress, lossDelta) / 10 ** 6:,.2f}"
     # )
 
-    profitInUnderlying = f"{data.post.gain_delta} {data.token_symbol}"
+    profit_in_underlying = f"{data.post.gain_delta} {data.token_symbol}"
 
     share_price_OK = (
         data.post.pps_percent_change >= 0
-        and data.post.price_per_share < 1
-        and data.post.price_per_share >= 1 ** data.token_symbol
+        and data.post.pps_percent_change < 1 # make sure it doesnt go too high
+        and data.post.price_per_share >= 1 ** data.token_decimals
     )
     profit_and_loss_OK = data.post.gain_delta >= 0 and data.post.loss_delta == 0
     everything_OK = share_price_OK and profit_and_loss_OK
@@ -203,7 +224,7 @@ def build_telegram_message(data):
         df[" "] = f""
         df["----- HARVEST SIMULATION DATA-------"] = f""
         df["Last harvest"] = f"{data.time_since_last_harvest}"
-        df["Profit on harvest"] = f"{profitInUnderlying}"
+        df["Profit on harvest"] = f"{profit_in_underlying}"
         # df["Profit in USD"] = f"{profitInUsd}"
         df["Loss on harvest"] = f"{data.post.loss_delta}"
         # df["Loss in USD"] = f"{lossInUsd}"

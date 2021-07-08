@@ -5,8 +5,6 @@ import importlib.util
 
 def main():
     custom = dotdict({})
-    custom.name = "ryan"
-    custom.age = "32"
     print(custom)
     s = "0x6598d4366D5A45De4Bf2D2468D877E0b6436Ae76"
     s = f"s_{s}"
