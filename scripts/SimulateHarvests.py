@@ -1,26 +1,43 @@
-from .TelegramBot import sendMessage
-import brownie
+from .TelegramBot import sendMessage, sendResult
+import brownie, importlib
 from utils import dotdict
-import json
-import sys
+import json, os, sys, re
+from dotenv import load_dotenv, find_dotenv
 from brownie import interface, accounts, web3, chain
+from dotenv import load_dotenv, find_dotenv
 from brownie.network.event import _decode_logs
 from babel.dates import format_timedelta
 from datetime import datetime
 import pandas as pd
 
+mode = "s" # vault mode by default
+
 def main():
+    load_dotenv()
+    f = open("address.txt", "r", errors="ignore")
+    address = f.read().strip()
+    address = address.strip()
     helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
     oracle_address = "0x83d95e0D5f402511dB06817Aff3f9eA88224B030"
-    vault = "0xA696a63cc78DfFa1a63E9E50587C197387FF6C7E"
+    if check_if_vault(address):
+        mode = "v"
+    else:
+        mode = "s"
+    print("Forked at block #",chain.height)
     # single_address()
-    get_all_vault_strats(vault,helper_address,oracle_address)
+    if mode == "v":
+        get_all_vault_strats(address,helper_address,oracle_address)
+    if mode == "s":
+        single_address(address)
+    if mode == "a":
+        get_all_addresses(helper_address, oracle_address)
 
-def single_address():
-    address = "0xf726472B7BE7461001df396C55CAdB1870c78dAE"
-    simulation_iterator([address])
+def single_address(strategy_address):
+    print("Single address")
+    simulation_iterator([strategy_address])
 
 def get_all_vault_strats(vault_address, helper_address, oracle_address):
+    print("All strategies in vault: "+vault_address)
     oracle = interface.IOracle(oracle_address)
     strategies_helper = interface.IStrategiesHelper(helper_address)
     strategies_addresses = strategies_helper.assetStrategiesAddresses(vault_address)
@@ -33,6 +50,10 @@ def get_all_addresses(helper_address, oracle_address):
     simulation_iterator(strategies_addresses)
 
 def simulation_iterator(strategies_addresses):
+
+    msg = str("Mainnet forked at block #: "+ str(chain.height)+ "\n\n"+str(len(strategies_addresses)))+" total strategies found.\n\nPlease wait while harvest(s) are queued ....."
+    sendMessage(msg)
+
     gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
     treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
     for strategy_address in strategies_addresses:
@@ -48,29 +69,37 @@ def simulation_iterator(strategies_addresses):
         data.config.blocks_to_mine = 1
         
         (data) = pre_harvest(data)
-        # (data) = pre_harvest_custom(data)
+        (data) = pre_harvest_custom(data)
         if data.pre.debt is not None and data.pre.debt > 0:
             (data) = harvest(data)
-            if data.harvest_success:
-                (data) = post_harvest(data)
-                # (data) = post_harvest_custom(data)
-                # (data) = configure_alerts(data)
-                # (data) = configure_alerts_custom(data)
-                (data) = build_telegram_message(data)
+            (data) = post_harvest(data)
+            # (data) = post_harvest_custom(data)
+            # (data) = configure_alerts(data)
+            # (data) = configure_alerts_custom(data)
+            (data) = build_telegram_message(data)
         chain.reset()
         continue
-
+    sendMessage("✅ Simulation Complete.")
 
 
 def pre_harvest(data):
     # Set basic strat/vault/token data values
     strategy_address = data.strategy_address
-    strategy = interface.IStrategy(strategy_address)
+    strategy = interface.IStrategy32(strategy_address)
+    strat_version = int(re.search(r'\d+', strategy.apiVersion()).group())
+    if strat_version <= 31:
+        strategy = interface.IStrategy30(strategy_address)
+    if strat_version > 31:
+        strategy = interface.IStrategy32(strategy_address)
     data.strategy = strategy
     data.vault_address = strategy.vault()
     vault = interface.IVault032(data.vault_address)
+    vault_version = int(vault.apiVersion().replace(".", ""))
+    if vault_version == 30:
+        vault = interface.IVault030(data.vault_address)
+    if vault_version == 31:
+        vault = interface.IVault031(data.vault_address)
     data.vault = vault
-    vault_address = strategy.vault()
     data.token_address = data.vault.token()
     data.token = interface.IERC20(data.token_address)
     data.token_decimals = data.token.decimals()
@@ -82,11 +111,6 @@ def pre_harvest(data):
         print(data.strategy_name + " - " + strategy_address)
         data.strategy_api_version = strategy.apiVersion()
         data.strategist = strategy.strategist()
-        vault_version = int(vault.apiVersion().replace(".", ""))
-        if vault_version == 30:
-            vault = interface.IVault030(vault_address)
-        if vault_version == 31:
-            vault = interface.IVault031(vault_address)
 
         # State before harvest
         strategy_params = vault.strategies(strategy)
@@ -98,7 +122,7 @@ def pre_harvest(data):
         data.pre.debt_outstanding = vault.debtOutstanding(strategy_address)
         data.pre.price_per_share = vault.pricePerShare()
         data.pre.total_assets = vault.totalAssets()
-        data.pre.actual_ratio = "{:.3%}".format(data.pre.debt / (data.pre.total_assets + 1) * 100)
+        data.pre.actual_ratio = "{:.3%}".format(data.pre.debt / (data.pre.total_assets + 1))
         data.pre.treasury_fee_balance = vault.balanceOf(data.treasury)
         data.pre.strategist_fee_balance = vault.balanceOf(strategy)
         try:
@@ -107,10 +131,31 @@ def pre_harvest(data):
             data.pre.harvest_trigger_ready = "Broken"
     return data
 
+def pre_harvest_custom(data):
+    strategy_address = data.strategy_address
+    s = f"s_{strategy_address}"
+    try:
+        spec = importlib.util.spec_from_file_location("module.name", f"./custom_scripts/{s}.py")
+        print(f"./custom_scripts/{s}.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        data = module.pre_harvest_custom(data)
+    except:
+        print("No custom script found")
+    
+    print("-------")
+    print(data.custom.pre)
+    for i in data.custom.pre:
+        print("Name:",i.name)
+        print("Value:",i.value)
+        print("-------")
+
+    return data
+
 def harvest(data):
     # Perform harvest and wait
     try:
-        data.strategy.harvest({"from": data.gov})
+        tx = data.strategy.harvest({"from": data.gov})
         data.harvest_success = True
     except:
         print("Can't harvest", data.strategy_name, data.strategy_address)
@@ -118,11 +163,13 @@ def harvest(data):
     
     chain.sleep(60 * 60 * data.config.hours_to_wait)
     chain.mine(data.config.blocks_to_mine)
-
     return data
 
 def post_harvest(data):
+    if not data.harvest_success:
+        return
     strategy_address = data.strategy_address
+    d = 10 ** data.token_decimals
 
     # State after harvest
     strategy_params = data.vault.strategies(strategy_address)
@@ -136,35 +183,36 @@ def post_harvest(data):
     data.post.total_assets = data.vault.totalAssets()
     data.post.treasury_fee_balance = data.vault.balanceOf(data.treasury)
     data.post.strategist_fee_balance = data.vault.balanceOf(data.strategy_address)
-
+    
     # State delta
-    d = data.token_decimals
-    data.post.debt_delta = (data.post.debt - data.pre.debt) / 10**d
-    data.post.gain_delta = (data.post.gain - data.pre.gain) / 10**d
-    data.post.loss_delta = (data.post.loss - data.pre.loss) / 10**d
+    d = 10 ** data.token_decimals
+    data.post.debt_delta = (data.post.debt - data.pre.debt)
+    data.post.gain_delta = (data.post.gain - data.pre.gain)
+    data.post.loss_delta = (data.post.loss - data.pre.loss)
     data.post.debt_outstanding_delta = (
-        (data.post.debt_outstanding - data.pre.debt_outstanding) / 10**d
+        (data.post.debt_outstanding - data.pre.debt_outstanding)
     )
     data.post.last_report_delta = data.post.last_report - data.pre.last_report
     data.time_since_last_harvest = format_timedelta(data.post.last_report_delta, locale="en_US") + " ago"
     data.post.total_assets_delta = data.post.total_assets - data.pre.total_assets
-    data.post.price_per_share_in_decimals = data.vault.pricePerShare() / 10**d
+    data.post.price_per_share_in_decimals = data.vault.pricePerShare() / d
     pps = data.post.price_per_share_in_decimals
-    data.post.treasury_fee_delta = (data.post.treasury_fee_balance - data.pre.treasury_fee_balance) / 10**d * pps
-    data.post.strategist_fee_delta = (data.post.strategist_fee_balance - data.pre.strategist_fee_balance) / 10**d * pps
+    data.post.treasury_fee_delta = (data.post.treasury_fee_balance - data.pre.treasury_fee_balance) * pps
+    data.post.strategist_fee_delta = (data.post.strategist_fee_balance - data.pre.strategist_fee_balance) * pps
     data.post.total_fee_delta = (data.post.treasury_fee_delta + data.post.strategist_fee_delta)
-
+    
     # Calculate and format results
-    percent = 0
     if data.pre.debt > 0:
-        if data.post.loss_delta > data.post.gain_delta:
-            percent = -1 * data.post.loss_delta / data.pre.debt
-            percent2 = -1 * (data.post.loss_delta + data.post.total_fee_delta) / data.pre.debt
-        else:
-            percent = data.post.gain_delta / data.pre.debt
-            percent2 = (data.post.gain_delta - data.post.total_fee_delta) / data.pre.debt
-    data.post.est_apr_before_fees = percent * 3.154e7 / data.post.last_report_delta
-    data.post.est_apr_after_fees = percent2 * 3.154e7 / data.post.last_report_delta
+        net_gain = data.post.gain_delta - data.post.loss_delta
+        percent_pre_fee = net_gain / data.pre.debt
+        percent_post_fee = (net_gain - data.post.total_fee_delta) / data.pre.debt
+
+    data.post.est_apr_before_fees = (
+        percent_pre_fee * 3.154e7 / data.post.last_report_delta # Extrapolate over 1yr
+    )
+    data.post.est_apr_after_fees = (
+        percent_post_fee * 3.154e7 / data.post.last_report_delta # Extrapolate over 1yr
+    )
     data.post.pps_percent_change = (
         (data.post.price_per_share - data.pre.price_per_share)
         / data.pre.price_per_share
@@ -173,6 +221,7 @@ def post_harvest(data):
     return data
     
 def build_telegram_message(data):
+    d = 10 ** data.token_decimals
     
     est_apr_before_fees = "{:.4%}".format(data.post.est_apr_before_fees)
     est_apr_after_fees = "{:.4%}".format(data.post.est_apr_after_fees)
@@ -184,8 +233,6 @@ def build_telegram_message(data):
     # lossInUsd = (
     #     f"${oracle.getNormalizedValueUsdc(tokenAddress, lossDelta) / 10 ** 6:,.2f}"
     # )
-
-    profit_in_underlying = f"{data.post.gain_delta} {data.token_symbol}"
 
     share_price_OK = (
         data.post.pps_percent_change >= 0
@@ -200,6 +247,7 @@ def build_telegram_message(data):
     def passFail(bool):
         return "PASSED" if bool else "FAILED"
 
+    everything_OK = False # Hardcoding this temporarily
 
     if not everything_OK:
         df = pd.DataFrame(index=[''])
@@ -214,37 +262,60 @@ def build_telegram_message(data):
         df["Vault Address"] = f"{data.vault_address}"
         df["Strategist Address"] = f"{data.strategist}"
         df[" "] = f""
+
         df["----- STRATEGY PARAMS-------"] = f""
-        df["Total Debt before"] = f"{data.pre.debt / 10**data.token_decimals}"
-        df["Total Gain before"] = f"{data.pre.gain / 10**data.token_decimals}"
-        df["Total Loss before"] = f"{data.pre.loss / 10**data.token_decimals}"
+        df["Total Debt before"] = "{:,}".format(data.pre.debt / d)
+        df["Total Gain before"] = "{:,}".format(data.pre.gain / d)
+        df["Total Loss before"] = "{:,}".format(data.pre.loss / d)
         df["Target debt ratio"] = f"{data.pre.desired_ratio}"
         df["Actual debt ratio"] = f"{data.pre.actual_ratio}"
         df["Harvest trigger"] = f"{boolDescription(data.pre.harvest_trigger)}"
         df[" "] = f""
+
         df["----- HARVEST SIMULATION DATA-------"] = f""
         df["Last harvest"] = f"{data.time_since_last_harvest}"
-        df["Profit on harvest"] = f"{profit_in_underlying}"
+        df["Net Profit on harvest"] = "{:,}".format((data.post.gain_delta / d) - (data.post.loss_delta / d))
         # df["Profit in USD"] = f"{profitInUsd}"
-        df["Loss on harvest"] = f"{data.post.loss_delta}"
+        # df["Loss on harvest"] = f"{data.post.loss_delta / d}"
         # df["Loss in USD"] = f"{lossInUsd}"
-        df["Debt delta"] = f"{data.post.debt_delta}"
-        df["Treasury fees"] = f"{data.post.treasury_fee_delta}"
-        df["Strategist fees"] = f"{data.post.strategist_fee_delta}"
-        df["Total fees"] = f"{data.post.total_fee_delta}"
+        df["Debt delta"] = f"{data.post.debt_delta / d}"
+        df["Treasury fees"] = "{:,}".format(data.post.treasury_fee_delta / d)
+        df["Strategist fees"] = "{:,}".format(data.post.strategist_fee_delta / d)
+        df["Total fees"] = "{:,}".format(data.post.total_fee_delta / d)
         df["APR before fees"] = f"{est_apr_before_fees}"
         df["APR after fees"] = f"{est_apr_after_fees}"
-        df["Previous PPS"] = f"{data.pre.price_per_share / 10**data.token_decimals}"
-        df["New PPS"] = f"{data.post.price_per_share / 10**data.token_decimals}"
+        df["Previous PPS"] = f"{data.pre.price_per_share / d}"
+        df["New PPS"] = f"{data.post.price_per_share / d}"
         df["PPS percent change"] = f"{data.pps_percent_change}"
         df[" "] = f""
+        
         df["----- HEALTH CHECKS-------"] = f""
         df["Share price change"] = f"{passFail(share_price_OK)}"
         df["Profit/loss check"] = f"{passFail(profit_and_loss_OK)}"
+        
+        df["----- CUSTOM DATA -------"] = f""
+        for i in data.custom.pre:
+            df[i.name] = f"{i.value}"
 
-        sendMessage(df.T.to_string())
+        sendResult(df.T.to_string())
 
     return data
 
 def generate_alerts(strategy_address, data, custom):
     test = "test"
+
+def check_if_vault(addr):
+    vault = interface.IVault032(addr)
+    strat = interface.IStrategy32(addr)
+    isVault = False
+    try:
+        vault.pricePerShare()
+        return True
+    except:
+        print("Not a vault")
+        try:
+            strat.estimatedTotalAssets()
+            return False
+        except:
+            print("Hmm, not a strat either")
+            return False
