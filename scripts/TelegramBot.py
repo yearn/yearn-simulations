@@ -21,5 +21,4 @@ def sendMessageToTelegram(message):
     telegram_chat_id = os.environ.get("TELEGRAM_YFI_HARVEST_SIMULATOR")
     encoded_message = urllib.parse.quote(message)
     url = f"https://api.telegram.org/{telegram_bot_key}/sendMessage?chat_id={telegram_chat_id}&text={encoded_message}"
-    print(url)
     urllib.request.urlopen(url)

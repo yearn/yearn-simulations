@@ -133,14 +133,14 @@ def pre_harvest(data):
 def pre_harvest_custom(data):
     strategy_address = data.strategy_address
     s = f"s_{strategy_address}"
-    try:
-        spec = importlib.util.spec_from_file_location("module.name", f"./plugins/{s}.py")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        data.pre.custom = dotdict({})
-        data = module.pre_harvest_custom(data)
-    except:
-        print("No custom pre-harvest script found for "+data.strategy_address)
+    #try:
+    spec = importlib.util.spec_from_file_location("module.name", f"./plugins/{s}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    data.pre.custom = dotdict({})
+    data = module.pre_harvest_custom(data)
+    # except:
+    #     print("No custom pre-harvest script found for "+data.strategy_address)
 
     return data
 
