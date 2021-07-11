@@ -22,9 +22,9 @@ then
     mode=a
     sed -i "s/^MODE=.*/MODE=${mode}/" ./.env # Replace in .env file
 
-    $BROWNIE_PATH/brownie.exe run SimulateHarvests.py
+    $BROWNIE_PATH run SimulateHarvests.py
 else
-    echo "Running single strat simulation: $address"
+    echo "Running simulation: $address"
     echo ${address} > 'address.txt'
-    $BROWNIE_PATH/brownie.exe run SimulateHarvests.py
+    $BROWNIE_PATH run SimulateHarvests.py
 fi

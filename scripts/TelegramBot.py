@@ -2,7 +2,7 @@ import urllib
 import os
 from dotenv import load_dotenv, find_dotenv
 
-def sendResult(message, monospacedFont = True):
+def sendResultToTelegram(message, monospacedFont = True):
     load_dotenv(find_dotenv())
     telegram_bot_key = os.environ.get("TELEGRAM_BOT_KEY")
     #telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
@@ -15,10 +15,9 @@ def sendResult(message, monospacedFont = True):
         url += "&parse_mode=MarkdownV2"
     urllib.request.urlopen(url)
 
-def sendMessage(message):
+def sendMessageToTelegram(message):
     load_dotenv(find_dotenv())
     telegram_bot_key = os.environ.get("TELEGRAM_BOT_KEY")
-    #telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
     telegram_chat_id = os.environ.get("TELEGRAM_YFI_HARVEST_SIMULATOR")
     encoded_message = urllib.parse.quote(message)
     url = f"https://api.telegram.org/{telegram_bot_key}/sendMessage?chat_id={telegram_chat_id}&text={encoded_message}"

@@ -1,8 +1,7 @@
-from .TelegramBot import sendMessage, sendResult
+from .TelegramBot import sendMessageToTelegram, sendResultToTelegram
 import brownie, importlib
 from utils import dotdict
 import json, os, sys, re
-from dotenv import load_dotenv, find_dotenv
 from brownie import interface, accounts, web3, chain
 from dotenv import load_dotenv, find_dotenv
 from brownie.network.event import _decode_logs
@@ -10,13 +9,14 @@ from babel.dates import format_timedelta
 from datetime import datetime
 import pandas as pd
 
-mode = "s" # vault mode by default
+mode = "s" # strategy mode by default
+load_dotenv()
+env = os.environ.get("ENVIRONMENT") # Set environment
 
 def main():
     load_dotenv()
     f = open("address.txt", "r", errors="ignore")
     address = f.read().strip()
-    address = address.strip()
     helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
     oracle_address = "0x83d95e0D5f402511dB06817Aff3f9eA88224B030"
     if check_if_vault(address):
@@ -33,7 +33,6 @@ def main():
         get_all_addresses(helper_address, oracle_address)
 
 def single_address(strategy_address):
-    print("Single address")
     simulation_iterator([strategy_address])
 
 def get_all_vault_strats(vault_address, helper_address, oracle_address):
@@ -51,8 +50,8 @@ def get_all_addresses(helper_address, oracle_address):
 
 def simulation_iterator(strategies_addresses):
 
-    msg = str("Mainnet forked at block #: "+ str(chain.height)+ "\n\n"+str(len(strategies_addresses)))+" total strategies found.\n\nPlease wait while harvest(s) are queued ....."
-    sendMessage(msg)
+    msg = str("Mainnet forked at block #: "+ "{:,}".format(chain.height)+ "\n\n"+str(len(strategies_addresses)))+" total strategies found.\n\nPlease wait while harvest(s) are queued ....."
+    sendMessageToTelegram(msg)
 
     gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
     treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
@@ -60,7 +59,6 @@ def simulation_iterator(strategies_addresses):
         data = dotdict({})
         data.pre = dotdict({}) # Here is where we'll keep all the pre-harvest data
         data.post = dotdict({}) # Here is where we'll keep all the post-harvest data
-        data.custom = dotdict({}) # Here is where we'll keep all the custom strategy data
         data.config = dotdict({}) # Define configuration options
         data.strategy_address = strategy_address
         data.gov = gov
@@ -73,13 +71,14 @@ def simulation_iterator(strategies_addresses):
         if data.pre.debt is not None and data.pre.debt > 0:
             (data) = harvest(data)
             (data) = post_harvest(data)
-            # (data) = post_harvest_custom(data)
+            (data) = post_harvest_custom(data)
+            (data) = build_report(data)
             # (data) = configure_alerts(data)
             # (data) = configure_alerts_custom(data)
-            (data) = build_telegram_message(data)
+            # (data) = build_telegram_message(data)
         chain.reset()
         continue
-    sendMessage("✅ Simulation Complete.")
+    sendMessageToTelegram("💪 Simulation Complete.")
 
 
 def pre_harvest(data):
@@ -135,20 +134,13 @@ def pre_harvest_custom(data):
     strategy_address = data.strategy_address
     s = f"s_{strategy_address}"
     try:
-        spec = importlib.util.spec_from_file_location("module.name", f"./custom_scripts/{s}.py")
-        print(f"./custom_scripts/{s}.py")
+        spec = importlib.util.spec_from_file_location("module.name", f"./plugins/{s}.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        data.pre.custom = dotdict({})
         data = module.pre_harvest_custom(data)
     except:
-        print("No custom script found")
-    
-    print("-------")
-    print(data.custom.pre)
-    for i in data.custom.pre:
-        print("Name:",i.name)
-        print("Value:",i.value)
-        print("-------")
+        print("No custom pre-harvest script found for "+data.strategy_address)
 
     return data
 
@@ -219,8 +211,39 @@ def post_harvest(data):
     ) * 100
 
     return data
+
+def post_harvest_custom(data):
+    strategy_address = data.strategy_address
+    s = f"s_{strategy_address}"
+    try:
+        spec = importlib.util.spec_from_file_location("module.name", f"./plugins/{s}.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        data.post.custom = dotdict({})
+        data = module.post_harvest_custom(data)
+    except:
+        print("No custom post-harvest script found for "+data.strategy_address)
+
+    return data
+
+def build_report_custom(data):
+    strategy_address = data.strategy_address
+    s = f"s_{strategy_address}"
+    try:
+        spec = importlib.util.spec_from_file_location("module.name", f"./plugins/{s}.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        data.custom_report = dotdict({})
+        data.custom_alerts = dotdict({})
+        data = module.build_report_custom(data)
+    except:
+        print("Failed fetching custom report script")
+
+    return data
     
-def build_telegram_message(data):
+
+def build_report(data):
+    df = pd.DataFrame(index=[''])
     d = 10 ** data.token_decimals
     
     est_apr_before_fees = "{:.4%}".format(data.post.est_apr_before_fees)
@@ -234,72 +257,191 @@ def build_telegram_message(data):
     #     f"${oracle.getNormalizedValueUsdc(tokenAddress, lossDelta) / 10 ** 6:,.2f}"
     # )
 
-    share_price_OK = (
+    """
+        default alerts
+        1. share price
+        2. loss check
+
+        log_level must be one of the following strings:
+                - "alert"
+                - "warning"
+                - "info"
+    """
+
+    i = []
+    r = dotdict({})
+    r.name = "Timestamp"
+    r.value = datetime.now().isoformat()
+    i, r = appender(i, r)
+    r.name = "----- STRATEGY DESCRIPTION-------"
+    r.value = ""
+    i, r = appender(i, r)
+    r.name = "Strategy Name"
+    r.value = data.strategy_name
+    i, r = appender(i, r)
+    r.name = "Vault Name"
+    r.value = data.vault_name
+    i, r = appender(i, r)
+    r.name = "Strategy API Version"
+    r.value = data.strategy.apiVersion()
+    i, r = appender(i, r)
+    r.name = "Strategy address"
+    r.value = data.strategy_address
+    i, r = appender(i, r)
+    r.name = "Token address"
+    r.value = data.token_address
+    i, r = appender(i, r)
+    r.name = "Vault Address"
+    r.value = data.vault_address
+    i, r = appender(i, r)
+    r.name = "Strategist address"
+    r.value = data.strategist
+    i, r = appender(i, r)
+    r.name = "----- STRATEGY PARAMS-------"
+    r.value = ""
+    i, r = appender(i, r)
+    r.name = "Total Debt before"
+    r.value = "{:,}".format(data.pre.debt / d)
+    i, r = appender(i, r)
+    r.name = "Total Gain before"
+    r.value = "{:,}".format(data.pre.gain / d)
+    i, r = appender(i, r)
+    r.name = "Total Loss before"
+    r.value = "{:,}".format(data.pre.loss / d)
+    i, r = appender(i, r)
+    r.name = "Target debt ratio"
+    r.value = f"{data.pre.desired_ratio}"
+    i, r = appender(i, r)
+    r.name = "Actual debt ratio"
+    r.value = f"{data.pre.actual_ratio}"
+    i, r = appender(i, r)
+    r.name = "Harvest trigger"
+    r.value = f"{bool_description(data.pre.harvest_trigger)}"
+    i, r = appender(i, r)
+    r.name = "----- HARVEST SIMULATION DATA-------"
+    r.value = ""
+    i, r = appender(i, r)
+    r.name = "Last harvest"
+    r.value = f"{data.time_since_last_harvest}"
+    i, r = appender(i, r)
+    r.name = "Net Profit on harvest"
+    r.value = "{:,}".format((data.post.gain_delta / d) - (data.post.loss_delta / d))
+    i, r = appender(i, r)
+    r.name = "Debt delta"
+    r.value = f"{data.post.debt_delta / d}"
+    i, r = appender(i, r)
+    r.name = "Treasury fees"
+    r.value = "{:,}".format(data.post.treasury_fee_delta / d)
+    i, r = appender(i, r)
+    r.name = "Strategist fees"
+    r.value = "{:,}".format(data.post.strategist_fee_delta / d)
+    i, r = appender(i, r)
+    r.name = "Total fees"
+    r.value = "{:,}".format(data.post.total_fee_delta / d)
+    i, r = appender(i, r)
+    r.name = "APR before fees"
+    r.value = f"{est_apr_before_fees}"
+    i, r = appender(i, r)
+    r.name = "APR after fees"
+    r.value = f"{est_apr_after_fees}"
+    i, r = appender(i, r)
+    r.name = "Previous PPS"
+    r.value =  f"{data.pre.price_per_share / d}"
+    i, r = appender(i, r)
+    r.name = "New PPS"
+    r.value = f"{data.post.price_per_share / d}"
+    i, r = appender(i, r)
+    r.name = "PPS percent change"
+    r.value = f"{data.pps_percent_change}"
+    i, r = appender(i, r)
+    r.name = "Total fees"
+    r.value = "{:,}".format(data.post.total_fee_delta / d)
+    i, r = appender(i, r)
+    r.name = "----- DEFAULT ALERTS -------"
+    r.value = ""
+    i, r = appender(i, r)
+    data.report = i
+
+    """
+        FORMAT REPORT
+    """
+    # Default Data
+    for idx in i:
+        df[idx.name] = f"{idx.value}"
+
+    # Default alerts
+    data = configure_alerts(data)
+    data.highest_alert_level = "info"
+    try:
+        for i in data.alerts:
+            df[i.name] = f"{pass_fail(i)}"
+            if i.value:
+                if i.log_level == "warning" and data.highest_alert_level != "alert":
+                    data.highest_alert_level = "warning"
+                if i.log_level == "alert":
+                    data.highest_alert_level = "alert"
+    except:
+        print("Error setting up default alerts")
+
+    
+    # Custom Data
+    data = build_report_custom(data)
+
+    try:
+        if len(data.custom_report) > 0:
+            df[" "] = " "
+            df[" "] = " "
+            df[" "] = " "
+            df[" "] = " "
+            df["----- CUSTOM REPORT -------"] = ""
+            for i in data.custom_report:
+                df[i.name] = f"{i.value}"
+    except:
+        print("Error setting up custom data")
+
+    # Custom Alerts
+    try:
+        if len(data.custom_alerts) > 0:
+            df["----- CUSTOM ALERTS -------"] = ""
+            for i in data.custom_alerts:
+                df[i.name] = f"{pass_fail(i)}"
+                if i.log_level == "warning" and data.highest_alert_level != "alert":
+                    data.highest_alert_level = "warning"
+                if i.log_level == "alert":
+                    data.highest_alert_level = "alert"
+    except:
+        print("Error setting up custom alerts")
+
+
+    if env == "prod":
+        sendResultToTelegram(df.T.to_string())
+    else:
+        print(df.T.to_string())
+    return data
+
+def configure_alerts(data):
+    alerts = []
+    alert = dotdict({})
+    alert.name = "Share price check"
+    alert.value = (
         data.post.pps_percent_change >= 0
         and data.post.pps_percent_change < 1 # make sure it doesnt go too high
         and data.post.price_per_share >= 1 ** data.token_decimals
     )
-    profit_and_loss_OK = data.post.gain_delta >= 0 and data.post.loss_delta == 0
-    everything_OK = share_price_OK and profit_and_loss_OK
-
-    def boolDescription(bool):
-        return "TRUE" if bool else "FALSE"
-    def passFail(bool):
-        return "PASSED" if bool else "FAILED"
-
-    everything_OK = False # Hardcoding this temporarily
-
-    if not everything_OK:
-        df = pd.DataFrame(index=[''])
-        df["ALERT 🚨"] = datetime.now().isoformat()
-        df[" "] = f""
-        df["----- STRATEGY DESCRIPTION-------"] = f""
-        df[f"{data.strategy_name}"] = ""
-        df["Vault Name"] = f"{data.vault_name}"
-        df["Strategy API Version"] = f"{data.strategy.apiVersion()}"
-        df["Strategy address"] = f"{data.strategy_address}"
-        df["Token address"] = f"{data.token_address}"
-        df["Vault Address"] = f"{data.vault_address}"
-        df["Strategist Address"] = f"{data.strategist}"
-        df[" "] = f""
-
-        df["----- STRATEGY PARAMS-------"] = f""
-        df["Total Debt before"] = "{:,}".format(data.pre.debt / d)
-        df["Total Gain before"] = "{:,}".format(data.pre.gain / d)
-        df["Total Loss before"] = "{:,}".format(data.pre.loss / d)
-        df["Target debt ratio"] = f"{data.pre.desired_ratio}"
-        df["Actual debt ratio"] = f"{data.pre.actual_ratio}"
-        df["Harvest trigger"] = f"{boolDescription(data.pre.harvest_trigger)}"
-        df[" "] = f""
-
-        df["----- HARVEST SIMULATION DATA-------"] = f""
-        df["Last harvest"] = f"{data.time_since_last_harvest}"
-        df["Net Profit on harvest"] = "{:,}".format((data.post.gain_delta / d) - (data.post.loss_delta / d))
-        # df["Profit in USD"] = f"{profitInUsd}"
-        # df["Loss on harvest"] = f"{data.post.loss_delta / d}"
-        # df["Loss in USD"] = f"{lossInUsd}"
-        df["Debt delta"] = f"{data.post.debt_delta / d}"
-        df["Treasury fees"] = "{:,}".format(data.post.treasury_fee_delta / d)
-        df["Strategist fees"] = "{:,}".format(data.post.strategist_fee_delta / d)
-        df["Total fees"] = "{:,}".format(data.post.total_fee_delta / d)
-        df["APR before fees"] = f"{est_apr_before_fees}"
-        df["APR after fees"] = f"{est_apr_after_fees}"
-        df["Previous PPS"] = f"{data.pre.price_per_share / d}"
-        df["New PPS"] = f"{data.post.price_per_share / d}"
-        df["PPS percent change"] = f"{data.pps_percent_change}"
-        df[" "] = f""
-        
-        df["----- HEALTH CHECKS-------"] = f""
-        df["Share price change"] = f"{passFail(share_price_OK)}"
-        df["Profit/loss check"] = f"{passFail(profit_and_loss_OK)}"
-        
-        df["----- CUSTOM DATA -------"] = f""
-        for i in data.custom.pre:
-            df[i.name] = f"{i.value}"
-
-        sendResult(df.T.to_string())
+    alert.log_level = "alert"
+    alerts, alert = appender(alerts, alert)
+    alert.name = "Loss check"
+    alert.value = (data.post.loss_delta == 0)
+    alert.log_level = "alert"
+    alerts, alert = appender(alerts, alert)
+    data.alerts = alerts
 
     return data
+
+def appender(arr, obj):
+    arr.append(obj)
+    obj = dotdict({})
+    return arr, obj
 
 def generate_alerts(strategy_address, data, custom):
     test = "test"
@@ -312,10 +454,24 @@ def check_if_vault(addr):
         vault.pricePerShare()
         return True
     except:
-        print("Not a vault")
         try:
             strat.estimatedTotalAssets()
             return False
         except:
-            print("Hmm, not a strat either")
             return False
+
+def bool_description(bool):
+        return "TRUE" if bool else "FALSE"
+
+def pass_fail(item):
+    if item.value:
+        return "✅"
+    else:
+        if item.log_level == "warning":
+            return "⚠"
+        if item.log_level == "info":
+            return "ℹ"
+        else:
+            return "🚨"
+    #return "PASSED" if bool else "FAILED"
+    
