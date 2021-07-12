@@ -7,6 +7,10 @@ Strategists are able to submit individual "plugins" for specific strategies to b
 
 Simulations happen automatically on a recurring schedule, but can also be produced on demand by talking with the Telegram bot in the "YFI Harvest Simulator" group.
 
+## Install
+### With Telegram integration
+### Without Telegram integration
+
 ## Usage for Users
 Users can consume reports one of two ways:
 1. Can subscribe to alert channels in Telegram (one for each log level) 

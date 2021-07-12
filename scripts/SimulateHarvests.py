@@ -51,7 +51,12 @@ def get_all_addresses(helper_address, oracle_address):
 def simulation_iterator(strategies_addresses):
 
     msg = str("Mainnet forked at block #: "+ "{:,}".format(chain.height)+ "\n\n"+str(len(strategies_addresses)))+" total strategies found.\n\nPlease wait while harvest(s) are queued ....."
-    sendMessageToTelegram(msg)
+    
+    if env == "prod":
+        sendMessageToTelegram(msg)
+    else:
+        print(msg)
+    
 
     gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
     treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
@@ -78,7 +83,13 @@ def simulation_iterator(strategies_addresses):
             # (data) = build_telegram_message(data)
         chain.reset()
         continue
-    sendMessageToTelegram("💪 Simulation Complete.")
+    
+    msg = "💪 Simulation Complete."
+    if env == "prod":
+        sendMessageToTelegram(msg)
+    else:
+        print(msg)
+    
 
 
 def pre_harvest(data):
