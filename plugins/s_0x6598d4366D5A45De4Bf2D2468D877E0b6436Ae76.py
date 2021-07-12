@@ -55,30 +55,30 @@ def build_report_custom(data):
     hiddenProfit = (s.calcWantHeldInVesper() / 1e8) - (data.post.debt / 1e8)
     lossProtection = s.lossProtectionBalance() / 1e8
     protectionNeeded = (s.calculateProtectionNeeded() / 1e8) - hiddenProfit - lossProtection
-    unSafeToHarvest = data.pre.custom.lossProtectionBalance > s.lossProtectionBalance()
+    safeToHarvest = data.pre.custom.lossProtectionBalance <= (s.lossProtectionBalance() / 1e8)
     print("PRE",data.pre.custom.lossProtectionBalance)
-    print("POST",s.lossProtectionBalance())
+    print("POST",s.lossProtectionBalance() / 1e8)
 
     reports = []
     report = dotdict({})
     report.name = "VSP claimed on harvest"
-    report.value = data.pre.custom.claimable
+    report.value = "{:.3f}".format(data.pre.custom.claimable)
     reports.append(report)
     report = dotdict({})
     report.name = "Total Realizable Withdraw Fee"
-    report.value = s.calculateProtectionNeeded() / 1e8
+    report.value = "{:.3f}".format(s.calculateProtectionNeeded() / 1e8)
     reports.append(report)
     report = dotdict({})
     report.name = "Loss Protection Balance"
-    report.value = s.lossProtectionBalance() / 1e8
+    report.value = "{:.3f}".format(s.lossProtectionBalance() / 1e8)
     reports.append(report)
     report = dotdict({})
     report.name = "Hidden Profit in Vesper"
-    report.value = hiddenProfit
+    report.value = "{:.3f}".format(hiddenProfit)
     reports.append(report)
     report = dotdict({})
     report.name = "Remaining Protection Needed"
-    report.value = protectionNeeded
+    report.value = "{:.3f}".format(protectionNeeded)
     reports.append(report)
     
 
@@ -86,7 +86,7 @@ def build_report_custom(data):
     alerts = []
     alert = dotdict({})
     alert.name = "Lossy Withdraw on Harvest"
-    alert.value = unSafeToHarvest
+    alert.value = safeToHarvest
     alert.log_level = "alert"
     alerts.append(alert)
 
