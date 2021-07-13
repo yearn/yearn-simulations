@@ -367,7 +367,7 @@ def build_report(data):
     r.value = f"{data.post.price_per_share / d}"
     i, r = appender(i, r)
     r.name = "PPS percent change"
-    r.value = f"{data.pps_percent_change}"
+    r.value = f"{data.post.pps_percent_change}"
     i, r = appender(i, r)
     r.name = "Total fees"
     r.value = "{:,}".format(data.post.total_fee_delta / d)
