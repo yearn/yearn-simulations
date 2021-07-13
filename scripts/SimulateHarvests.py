@@ -96,7 +96,7 @@ def pre_harvest(data):
     # Set basic strat/vault/token data values
     strategy_address = data.strategy_address
     strategy = interface.IStrategy32(strategy_address)
-    strat_version = int(re.search(r'\d+', strategy.apiVersion()).group())
+    strat_version = int(re.sub("[^0-9]", "", strategy.apiVersion()))
     if strat_version <= 31:
         strategy = interface.IStrategy30(strategy_address)
     if strat_version > 31:
@@ -109,6 +109,10 @@ def pre_harvest(data):
         vault = interface.IVault030(data.vault_address)
     if vault_version == 31:
         vault = interface.IVault031(data.vault_address)
+    vault_gov = vault.governance()
+    if vault_gov != data.gov:
+        gov = accounts.at(vault_gov, force=True)
+        data.gov = gov
     data.vault = vault
     data.token_address = data.vault.token()
     data.token = interface.IERC20(data.token_address)
@@ -224,9 +228,9 @@ def post_harvest(data):
     return data
 
 def post_harvest_custom(data):
-    strategy_address = data.strategy_address
-    s = f"s_{strategy_address}"
     try:
+        strategy_address = data.strategy_address
+        s = f"s_{strategy_address}"
         spec = importlib.util.spec_from_file_location("module.name", f"./plugins/{s}.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
