@@ -41,13 +41,14 @@ def start(update, context):
     context.bot.send_message(chat_id=telegram_chat_id, text="I'm a bot, please talk to me!")
 
 @run_async
-def do_exec(address):
+def do_exec(address, chat_id):
     try:
-        arg = "-a "+ address
-        p = subprocess.call(['bash','./bot/launch_simulator.sh', arg]) # Invoke shell script to update env vars and run brownie
-        # p = subprocess.run(['./bot/launch_simulator.sh', arg],capture_output=True) # Invoke shell script to update env vars and run brownie
+        address = "-a "+ str(address)
+        chat_id = "-i "+ str(chat_id)
+        print(chat_id)
+        p = subprocess.call(['bash','./bot/launch_simulator.sh', address, chat_id]) # Invoke shell script to update env vars and run brownie
     except:
-        e = sys.exc_info()[0]
+        e = sys.exc_info()
         print("error calling subprocess")
         print(e)
 
@@ -57,6 +58,15 @@ def sim(update: Update, context: CallbackContext):
     isValid = False
     isVault = False
     str = ""
+    print("CHAT ID")
+    print(update.message)
+    user_first_name = ""
+    try:
+        user_first_name = update.message.chat.first_name
+    except:
+        print("Unable to get user's first name")
+    chat_id = update.message.chat.id
+    print("User:", user_first_name, chat_id)
     try:
         address = context.args[0]
         try:
@@ -84,8 +94,8 @@ def sim(update: Update, context: CallbackContext):
                     str = "vault:\n" + name
                 else:
                     str = "strategy:\n" + name
-                do_exec(address) # Invoke shell script to update env vars and run brownie
-                update.message.reply_text("Address you gave is for {}\n\n💻 Let's run a simulation! ......".format(str))
+                do_exec(address, chat_id) # Invoke shell script to update env vars and run brownie
+                update.message.reply_text("G'day {}, ser!\n\nAddress you gave is for {}\n\n💻 Let's run a harvest simulation! ......".format(user_first_name,str))
 
         except (IndexError, ValueError):
             update.message.reply_text('Please supply a valid strategy or vault address.')

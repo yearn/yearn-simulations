@@ -24,5 +24,5 @@ def post_harvest_custom(data):
     return data
 
 def build_report_custom(data):
-
+    
     return data

@@ -12,6 +12,9 @@ import pandas as pd
 mode = "s" # strategy mode by default
 load_dotenv()
 env = os.environ.get("ENVIRONMENT") # Set environment
+chat_id = 1
+f = open("chatid.txt", "r", errors="ignore")
+chat_id = f.read().strip()
 
 def main():
     load_dotenv()
@@ -53,7 +56,7 @@ def simulation_iterator(strategies_addresses):
     msg = str("Mainnet forked at block #: "+ "{:,}".format(chain.height)+ "\n\n"+str(len(strategies_addresses)))+" total strategies found.\n\nPlease wait while harvest(s) are queued ....."
     
     if env == "prod":
-        sendMessageToTelegram(msg)
+        sendMessageToTelegram(msg, chat_id)
     else:
         print(msg)
     
@@ -86,7 +89,7 @@ def simulation_iterator(strategies_addresses):
     
     msg = "💪 Simulation Complete."
     if env == "prod":
-        sendMessageToTelegram(msg)
+        sendMessageToTelegram(msg, chat_id)
     else:
         print(msg)
     
@@ -429,7 +432,7 @@ def build_report(data):
 
 
     if env == "prod":
-        sendResultToTelegram(df.T.to_string())
+        sendResultToTelegram(df.T.to_string(), chat_id)
     else:
         print(df.T.to_string())
     return data

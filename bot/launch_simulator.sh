@@ -6,10 +6,11 @@ fi
 echo $BROWNIE_PATH
 
 # Set env variables
-while getopts ":a:" flag
+while getopts ":a:i:" flag
 do
     case "${flag}" in
         a|--address) address=${OPTARG};;
+        i|--chat_id) chat_id=${OPTARG};;
     esac
 done
 
@@ -25,6 +26,8 @@ then
     $BROWNIE_PATH run SimulateHarvests.py
 else
     echo "Running simulation: $address"
+    echo "Chat ID: $chat_id"
+    echo ${chat_id} > 'chatid.txt'
     echo ${address} > 'address.txt'
     $BROWNIE_PATH run SimulateHarvests.py
 fi
