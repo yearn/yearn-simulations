@@ -6,3 +6,4 @@ reports/
 .DS_Store
 .env
 scripts/test.py
+bot/test.py

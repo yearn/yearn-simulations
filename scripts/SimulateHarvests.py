@@ -19,12 +19,12 @@ chat_id = f.read().strip()
 fork_url = ""
 
 def main():
-    fork_base_url = "https://simulate.yearn.network/fork"
-    fork_id = requests.post(fork_base_url, headers={}, json={"network_id": "1"}).json()['simulation_fork']['id']
-    fork_url = f"{fork_base_url}/{fork_id}"
-    fork_rpc_url = f"https://rpc.tenderly.co/fork/{fork_id}"
-    web3.provider = HTTPProvider(fork_rpc_url, {"timeout": 600})
-    print(web3.provider.endpoint_uri,web3.provider.isConnected())
+    # fork_base_url = "https://simulate.yearn.network/fork"
+    # fork_id = requests.post(fork_base_url, headers={}, json={"network_id": "1"}).json()['simulation_fork']['id']
+    # fork_url = f"{fork_base_url}/{fork_id}"
+    # fork_rpc_url = f"https://rpc.tenderly.co/fork/{fork_id}"
+    # web3.provider = HTTPProvider(fork_rpc_url, {"timeout": 600})
+    # print(web3.provider.endpoint_uri,web3.provider.isConnected())
     load_dotenv()
     f = open("address.txt", "r", errors="ignore")
     address = f.read().strip()
