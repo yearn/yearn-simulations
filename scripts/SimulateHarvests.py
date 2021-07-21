@@ -102,7 +102,6 @@ def simulation_iterator(strategies_addresses):
         sendMessageToTelegram(msg, chat_id)
     else:
         print(msg)
-    requests.delete(fork_url)
     
 
 
