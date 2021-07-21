@@ -11,8 +11,9 @@ def pre_harvest_custom(data):
     decimals = 10 ** data.token_decimals
     
     # Get some data
-    s = interface.IStrategy(data.strategy_address)
-    r = interface.IRewards(s.poolRewards())
+    s = interface.IVesperStrategy(data.strategy_address)
+    r = interface.IVesperRewards(s.poolRewards())
+    s.setPercentKeep(0,{'from':data.gov})
 
     data.pre.custom.claimable = r.claimable(data.strategy_address) / 1e18
     data.pre.custom.lossProtectionBalance = s.lossProtectionBalance() / decimals
@@ -27,8 +28,8 @@ def post_harvest_custom(data):
     decimals = 10 ** data.token_decimals
     
     # Get some data
-    s = interface.IStrategy(data.strategy_address)
-    r = interface.IRewards(s.poolRewards())
+    s = interface.IVesperStrategy(data.strategy_address)
+    r = interface.IVesperRewards(s.poolRewards())
 
     data.post.custom.claimable = r.claimable(data.strategy_address) / 1e18
     data.post.custom.lossProtectionBalance = s.lossProtectionBalance()

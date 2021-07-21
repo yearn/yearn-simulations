@@ -1,13 +1,14 @@
 from .TelegramBot import sendMessageToTelegram, sendResultToTelegram
 import brownie, importlib
 from utils import dotdict
-import json, os, sys, re
+import json, os, sys, re, requests
 from brownie import interface, accounts, web3, chain
 from dotenv import load_dotenv, find_dotenv
 from brownie.network.event import _decode_logs
 from babel.dates import format_timedelta
 from datetime import datetime
 import pandas as pd
+from web3 import HTTPProvider
 
 mode = "s" # strategy mode by default
 load_dotenv()
@@ -15,8 +16,15 @@ env = os.environ.get("ENVIRONMENT") # Set environment
 chat_id = 1
 f = open("chatid.txt", "r", errors="ignore")
 chat_id = f.read().strip()
+fork_url = ""
 
 def main():
+    fork_base_url = "https://simulate.yearn.network/fork"
+    fork_id = requests.post(fork_base_url, headers={}, json={"network_id": "1"}).json()['simulation_fork']['id']
+    fork_url = f"{fork_base_url}/{fork_id}"
+    fork_rpc_url = f"https://rpc.tenderly.co/fork/{fork_id}"
+    web3.provider = HTTPProvider(fork_rpc_url, {"timeout": 600})
+    print(web3.provider.endpoint_uri,web3.provider.isConnected())
     load_dotenv()
     f = open("address.txt", "r", errors="ignore")
     address = f.read().strip()
@@ -92,6 +100,7 @@ def simulation_iterator(strategies_addresses):
         sendMessageToTelegram(msg, chat_id)
     else:
         print(msg)
+    requests.delete(fork_url)
     
 
 

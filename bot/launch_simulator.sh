@@ -29,5 +29,5 @@ else
     echo "Chat ID: $chat_id"
     echo ${chat_id} > 'chatid.txt'
     echo ${address} > 'address.txt'
-    $BROWNIE_PATH run SimulateHarvests.py
+    $BROWNIE_PATH run SimulateHarvests.py --network mainnet
 fi

@@ -1,0 +1,10 @@
+{
+    "committee_name": "Gen Lev Comp", 
+    "committee_tg_chat_id": "-594522777",
+    "strategies":[
+        "0x6341c289b2E0795A04223DF04B53A77970958723",
+        "0x83B6211379c26E0bA8d01b9EcD4eE1aE915630aa"
+    ],
+    "report_frequency": 3600,
+    "alert_treshold": "all"
+}
