@@ -34,6 +34,8 @@ def main():
         mode = "v"
     else:
         mode = "s"
+    if address == "all":
+        mode = "a"
     print("Forked at block #",chain.height)
     # single_address()
     if mode == "v":
