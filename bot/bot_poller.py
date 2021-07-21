@@ -69,36 +69,40 @@ def sim(update: Update, context: CallbackContext):
     print("User:", user_first_name, chat_id)
     try:
         address = context.args[0]
-        try:
-            strat = web3.eth.contract(address=address, abi=strategy_abi)
-            vault = web3.eth.contract(address=address, abi=vault_abi)
-            
-            try: # check if a strat
-                strat.functions.estimatedTotalAssets().call() # confirm it's a strat
-                name = strat.functions.name().call()
-                isValid = True
-            except (IndexError, ValueError):
-                print("")
+        if address == "all":
+            do_exec(address, chat_id) # Invoke shell script to update env vars and run brownie
+            update.message.reply_text("G'day {}, ser!\n\nI see you'd like to simulate harvests on all strats\n\n💻 Let's run a simulation! ......".format(user_first_name,str))
+        else:
+            try:
+                strat = web3.eth.contract(address=address, abi=strategy_abi)
+                vault = web3.eth.contract(address=address, abi=vault_abi)
+                
+                try: # check if a strat
+                    strat.functions.estimatedTotalAssets().call() # confirm it's a strat
+                    name = strat.functions.name().call()
+                    isValid = True
+                except (IndexError, ValueError):
+                    print("")
 
-            try: 
-                vault.functions.pricePerShare().call()
-                name = vault.functions.name().call()
-                isVault = True
-                isValid = True
-            except (IndexError, ValueError):
-                print("")
-            
-            
-            if isValid:
-                if isVault:
-                    str = "vault:\n" + name
-                else:
-                    str = "strategy:\n" + name
-                do_exec(address, chat_id) # Invoke shell script to update env vars and run brownie
-                update.message.reply_text("G'day {}, ser!\n\nAddress you gave is for {}\n\n💻 Let's run a harvest simulation! ......".format(user_first_name,str))
+                try: 
+                    vault.functions.pricePerShare().call()
+                    name = vault.functions.name().call()
+                    isVault = True
+                    isValid = True
+                except (IndexError, ValueError):
+                    print("")
+                
+                
+                if isValid:
+                    if isVault:
+                        str = "vault:\n" + name
+                    else:
+                        str = "strategy:\n" + name
+                    do_exec(address, chat_id) # Invoke shell script to update env vars and run brownie
+                    update.message.reply_text("G'day {}, ser!\n\nAddress you gave is for {}\n\n💻 Let's run a harvest simulation! ......".format(user_first_name,str))
 
-        except (IndexError, ValueError):
-            update.message.reply_text('Please supply a valid strategy or vault address.')
+            except (IndexError, ValueError):
+                update.message.reply_text('Please supply a valid strategy or vault address.')
         
         
     except (IndexError, ValueError):
