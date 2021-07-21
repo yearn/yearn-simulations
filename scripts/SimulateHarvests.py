@@ -30,12 +30,12 @@ def main():
     address = f.read().strip()
     helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
     oracle_address = "0x83d95e0D5f402511dB06817Aff3f9eA88224B030"
-    if check_if_vault(address):
+    if address == "all":
+        mode = "a"
+    elif check_if_vault(address):
         mode = "v"
     else:
         mode = "s"
-    if address == "all":
-        mode = "a"
     print("Forked at block #",chain.height)
     # single_address()
     if mode == "v":
