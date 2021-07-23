@@ -13,7 +13,7 @@ def pre_harvest_custom(data):
     # Get some data
     s = interface.IVesperStrategy(data.strategy_address)
     r = interface.IVesperRewards(s.poolRewards())
-    s.setPercentKeep(0,{'from':data.gov})
+    s.setPercentKeep(0,{'from':data.gov, "nonce": data.gov.nonce, "gas_limit": 8000000})
 
     data.pre.custom.claimable = r.claimable(data.strategy_address) / 1e18
     data.pre.custom.lossProtectionBalance = s.lossProtectionBalance() / decimals
