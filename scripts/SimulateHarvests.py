@@ -113,12 +113,15 @@ def simulation_iterator(strategies_addresses, simulation):
         continue
     
     msg = "💪 Simulation Complete.\n"
-    if simulation.address_type == "vault":
-        report_string = report_apr(data, simulation)
-        msg += report_string
     if env == "prod":
+        if simulation.address_type == "vault":
+            report_string = report_apr(data, simulation)
+            sendResultToTelegram(report_string, chat_id)
         sendMessageToTelegram(msg, chat_id)
     else:
+        if simulation.address_type == "vault":
+            report_string = report_apr(data, simulation)
+            print(report_string)
         print(msg)
     
 
