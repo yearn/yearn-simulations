@@ -66,7 +66,7 @@ def report_builder(data):
     r.value = f"{data.pre.desired_ratio_str}"
     i, r = appender(i, r)
     r.name = "Actual debt ratio"
-    r.value = f"{data.pre.actual_ratio}"
+    r.value = f"{data.pre.actual_ratio_str}"
     i, r = appender(i, r)
     r.name = "Harvest trigger"
     r.value = f"{bool_description(data.pre.harvest_trigger)}"
