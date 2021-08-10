@@ -219,8 +219,8 @@ def harvest(data):
     return data
 
 def post_harvest(data):
-    if not data.harvest_success:
-        return data
+    # if not data.harvest_success:
+    #     return data
     strategy_address = data.strategy_address
     d = 10 ** data.token_decimals
 
