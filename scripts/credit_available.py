@@ -22,7 +22,6 @@ chat_id = f.read().strip()
 fork_url = ""
 
 def main():
-    weth_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
     addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
 
