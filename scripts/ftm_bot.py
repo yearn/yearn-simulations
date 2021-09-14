@@ -168,8 +168,12 @@ def get_price(oracle, token):
     if token.symbol() == "WFTM":
         symbol = "FTM"
     print(symbol)
-    return oracle.getReferenceData(symbol,"USD").dict()["rate"] / 1e18
-    return oracle.getPriceUsdcRecommended(token) / 10**6
+    price = 0
+    try:
+        price = oracle.getReferenceData(symbol,"USD").dict()["rate"] / 1e18
+    except:
+        price = oracle.getReferenceData("USDC","USD").dict()["rate"] / 1e18
+    return price
 
 def dhms_from_seconds(seconds):
 	minutes, seconds = divmod(seconds, 60)
