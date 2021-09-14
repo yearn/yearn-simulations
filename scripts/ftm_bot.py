@@ -30,7 +30,7 @@ def main():
         chat_id = prod_group
     else:
         chat_id = test_group
-    vaults = ["0x0DEC85e74A92c52b7F708c4B10207D9560CEFaf0","0x637eC617c86D24E421328e6CAEa1d92114892439"]
+    vaults = ["0x0DEC85e74A92c52b7F708c4B10207D9560CEFaf0","0x637eC617c86D24E421328e6CAEa1d92114892439","0xA6A0cA45c2ceF0c5C0E0B58A8Ddd59209378B76A"]
     
     # addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
     oracle = interface.bandoracle("0x56E2898E0ceFF0D1222827759B56B28Ad812f92F")
