@@ -13,8 +13,6 @@ from datetime import datetime
 import pandas as pd
 from web3 import HTTPProvider
 
-mode = "sim" # strategy mode by default
-address_type = "strategy"
 load_dotenv()
 env = os.environ.get("ENV") # Set environment
 chat_id = os.environ.get("TELEGRAM_CHAT_ID_CREDIT_TRACKER")
@@ -69,7 +67,7 @@ def main():
                     nextHarvest = round((lastReport + maxReportDelay - round(time.time())) / 60 / 60)
                     if nextHarvest < 0:
                         nextHarvest = "overdue"
-                    strat_msg = strat_msg+"["+interface.IStrategy32(strat).name()+"](https://etherscan.io/address/"+strat+")\n   Credit available $"+"{:,.2f}".format(credit_usd)+"\n   Last harvest: "+harvest_delta+"\n   Est next harvest: "+str(nextHarvest)+" hrs\n"
+                    strat_msg = strat_msg+"   ["+interface.IStrategy32(strat).name()+"](https://etherscan.io/address/"+strat+")\n   Credit available $"+"{:,.2f}".format(credit_usd)+"\n   Last harvest: "+harvest_delta+"\n   Est next harvest: "+str(nextHarvest)+" hrs\n"
 
         
 
@@ -78,11 +76,6 @@ def main():
         vault_stats.append("$"+str("{:,.2f}".format(credit_sum)+" total idle credit in vault (" + str("{:.2%}".format(percent_tvl_uninvested)) + " of TVL)\n"))
         vault_stats.append(str(round(unallocated_ratio)) + " BPS unallocated debt ratio")
         if round(unallocated_ratio) > 500 or percent_tvl_uninvested > 5 or credit_sum > 1_500_000:
-            # print("-- "+vault.name()+" "+vault.apiVersion()+" "+vault.address)
-            # print(''.join(vault_stats))
-            # print()
-            # print(strat_msg)
-            # print()
             m = "["+vault.name()+" "+vault.apiVersion()+"](https://etherscan.io/address/"+vault.address+")\n"
             m += ''.join(vault_stats)+"\n\n"
             m += strat_msg

@@ -26,10 +26,10 @@ def main():
     load_dotenv()
     # fork_base_url = "https://simulate.yearn.network/fork"
     # fork_id = requests.post(fork_base_url, headers={}, json={"network_id": "1"}).json()['simulation_fork']['id']
-    # fork_url = f"{fork_base_url}/{fork_id}"
+    # fork_id = "abe22f14-d8a8-40ed-8081-6112fbdf5cbd"
     # fork_rpc_url = f"https://rpc.tenderly.co/fork/{fork_id}"
     # web3.provider = HTTPProvider(fork_rpc_url, {"timeout": 600})
-    # print(web3.provider.endpoint_uri,web3.provider.isConnected())
+    print(web3.provider.endpoint_uri,web3.provider.isConnected())
     simulation = dotdict({})
     simulation.apr = dotdict({})
     simulation.apr.strategies = []
@@ -108,8 +108,8 @@ def simulation_iterator(strategies_addresses, simulation):
             data, simulation = calc_apr(data, simulation)
         report = dotdict({})
         run_report.append(report)
-        
-        chain.revert()
+        chain.reset()
+        # chain.revert()
         continue
     
     msg = "💪 Simulation Complete.\n"
@@ -187,7 +187,7 @@ def pre_harvest(data):
         except:
             data.pre.harvest_trigger_ready = "Broken"
         if data.hasHealthChecks:
-            data.strategy.setDoHealthCheck(False,{'from':data.gov, 'gas_price':8000000})
+            data.strategy.setDoHealthCheck(False,{'from':data.gov})
     return data
 
 def pre_harvest_custom(data):
