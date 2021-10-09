@@ -42,6 +42,15 @@ def main():
         decimals = vault.decimals()
         total_assets = vault.totalAssets()
         price = oracle.getPriceUsdcRecommended(token) / 10**6
+        if price == 0:
+            if token == interface.IStrategy32("0xAF6F42bfB29e90dFe51f2341fF1B1f99Fd776A70").want(): # cvxcrv-f
+                crv = "0xd533a949740bb3306d119cc777fa900ba034cd52"
+                price = oracle.getPriceUsdcRecommended(crv) / 10**6
+            if token == interface.IStrategy32("0xB431A88a6cFFfa66dBCf96Ebc89aE72Ff7Fcc34f").want(): # ibEUR-sEUR
+                sEUR = "0xd71ecff9342a5ced620049e616c5035f1db98620"
+                price = oracle.getPriceUsdcRecommended(crv) / 10**6
+        if price == 0:
+            print("UNABLE TO GET PRICE ON", interface.IERC20(token).symbol(), strat)
         tvl_usd = price * (total_assets / 10**decimals)
         debt_ratio = 0
         try:

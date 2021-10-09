@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 import pandas as pd
+import datetime
 import telebot
 from brownie import (
     Contract,
@@ -34,6 +35,12 @@ def main():
     addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
     
+    # Add non-SSCs
+    yvboost_strat = "0x2923a58c1831205C854DBEa001809B194FDb3Fa5"
+    accumulator = "0x0967aFe627C732d152e3dFCAdd6f9DBfecDE18c3"
+    sscs.append(yvboost_strat) # YVBOOST
+    sscs.append(accumulator) # Accumulator
+
     count = 0
     for i, s in enumerate(sscs):
         string = ""
@@ -91,6 +98,15 @@ def main():
             harvest_indicator = "\U0001F468" + "\u200D" + "\U0001F33E "
         if usd_tendable > 0:
             tend_indicator = "\U0001F33E "
+
+        if s == yvboost_strat:
+            strat = interface.IYvBoost(yvboost_strat)
+            if strat.getClaimable3Crv() > 0:
+                harvest_indicator = "\U0001F468" + "\u200D" + "\U0001F33E "
+            elif  datetime.datetime.today().weekday() == 3 and hours_since_last > 24:
+                tend_indicator = "\U0001F33E "
+            else:
+                continue # Skip yvBOOST, no attention needed
         
         df = pd.DataFrame(index=[''])
         df[harvest_indicator+tend_indicator+strat.name()] = s
