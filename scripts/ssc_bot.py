@@ -71,6 +71,10 @@ def main():
         
         try:
             print("Harvesting strategy: " + s)
+            if strat.address == accumulator:
+                strat = interface.Accumulator(strat.address)
+                slip = strat.slippageProtectionOut()
+                strat.updateSlippageProtectionOut(100,{"from":gov})
             tx = strat.harvest({'from': gov})
         except:
             string = "\n\n" + strat.name() + s + "\n\U0001F6A8 Failed Harvest!\n"

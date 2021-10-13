@@ -1,5 +1,5 @@
 from .TelegramBot import sendMessageToTelegram, sendResultToTelegram
-import brownie, importlib
+import importlib
 from utils import dotdict
 import json, os, sys, re, requests
 from brownie import interface, accounts, web3, chain
@@ -26,7 +26,6 @@ def main():
     load_dotenv()
     # fork_base_url = "https://simulate.yearn.network/fork"
     # fork_id = requests.post(fork_base_url, headers={}, json={"network_id": "1"}).json()['simulation_fork']['id']
-    # fork_id = "abe22f14-d8a8-40ed-8081-6112fbdf5cbd"
     # fork_rpc_url = f"https://rpc.tenderly.co/fork/{fork_id}"
     # web3.provider = HTTPProvider(fork_rpc_url, {"timeout": 600})
     print(web3.provider.endpoint_uri,web3.provider.isConnected())
@@ -261,10 +260,10 @@ def post_harvest(data):
         percent_post_fee = (net_gain - data.post.total_fee_delta) / data.pre.debt
 
     data.post.est_apr_before_fees = (
-        percent_pre_fee * 3.154e7 / data.post.last_report_delta # Extrapolate over 1yr
+        percent_pre_fee * 3.154e7 / data.post.last_report_delta if data.post.last_report_delta != 0 else 0 # Extrapolate over 1yr
     )
     data.post.est_apr_after_fees = (
-        percent_post_fee * 3.154e7 / data.post.last_report_delta # Extrapolate over 1yr
+        percent_post_fee * 3.154e7 / data.post.last_report_delta if data.post.last_report_delta != 0 else 0 # Extrapolate over 1yr
     )
     data.post.pps_percent_change = (
         (data.post.price_per_share - data.pre.price_per_share)

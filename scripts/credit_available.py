@@ -76,7 +76,9 @@ def main():
                     nextHarvest = round((lastReport + maxReportDelay - round(time.time())) / 60 / 60)
                     if nextHarvest < 0:
                         nextHarvest = "overdue"
-                    strat_msg = strat_msg+"   ["+interface.IStrategy32(strat).name()+"](https://etherscan.io/address/"+strat+")\n   Credit available $"+"{:,.2f}".format(credit_usd)+"\n   Last harvest: "+harvest_delta+"\n   Est next harvest: "+str(nextHarvest)+" hrs\n"
+                    else:
+                        nextHarvest = str(nextHarvest) + " hrs"
+                    strat_msg = strat_msg+"   ["+interface.IStrategy32(strat).name()+"](https://etherscan.io/address/"+strat+")\n   Credit available $"+"{:,.2f}".format(credit_usd)+"\n   Last harvest: "+harvest_delta+"\n   Est next harvest: "+str(nextHarvest)+"\n"
 
         
 

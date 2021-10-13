@@ -30,6 +30,7 @@ def main():
     addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
     indent = "    "
+    WEEK = 86400 * 7
     num_gauges = gauge_controller.n_gauges()
     print("Found "+str(num_gauges)+" gauges...")
     for i in range(0, num_gauges):
@@ -44,10 +45,12 @@ def main():
             lp_name = "Cannot find name"
         if len(rewards) > 0:
             msg = msg + "[" + lp_name + "](https://etherscan.io/address/"+g+")\n"
+            period = round(round(time.time()) / WEEK) * WEEK - WEEK
             for i,  r in enumerate(rewards):
                 price = oracle.getPriceUsdcRecommended(r) / 10**6
                 token = interface.IERC20(r)
                 total_tokens = bribev2.reward_per_token(g, r) / 10**token.decimals()
+                total_tokens = total_tokens * gauge_controller.points_weight(g, period).dict()["slope"] / 1e18
                 claimable = bribev2.claimable(voter, g, r) / 10**token.decimals()
                 claimable_str = claimable / 10**token.decimals()
                 claimable_usd = price * claimable_str
@@ -55,6 +58,6 @@ def main():
                     msg = msg + indent + "---\n"
                 msg = msg + indent + token.name() + " " + str(round(total_tokens,2)) + " " + token.symbol() + " " + "${:,.2f}".format(total_tokens * price) + "\n"
                 msg = msg + indent + "**Claimable by yearn: " + str(round(claimable,2)) + " " + token.symbol() + " " + "${:,.2f}".format(claimable_usd) + "**\n"
-            # if env == "PROD" and claimable:
-            bot.send_message(chat_id, msg, parse_mode="markdown", disable_web_page_preview = True)
+            if env == "PROD":
+                bot.send_message(chat_id, msg, parse_mode="markdown", disable_web_page_preview = True)
             print(msg)
