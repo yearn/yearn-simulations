@@ -52,12 +52,21 @@ def main():
                 total_tokens = bribev2.reward_per_token(g, r) / 10**token.decimals()
                 total_tokens = total_tokens * gauge_controller.points_weight(g, period).dict()["slope"] / 1e18
                 claimable = bribev2.claimable(voter, g, r) / 10**token.decimals()
-                claimable_str = claimable / 10**token.decimals()
-                claimable_usd = price * claimable_str
+                claimable_usd_str = ""
+                total_tokens_price = ""
+                if price == 0:
+                    total_tokens_price = "? Cannot find price"
+                else:
+                    total_tokens_price = "${:,.2f}".format(total_tokens * price)
+                if claimable > 0 and price == 0:
+                    claimable_usd_str = "⚠"
+                elif claimable > 0 and price > 0:
+                    claimable_usd = price * claimable
+                    claimable_usd_str = "${:,.2f}".format(claimable_usd)
                 if i > 0:
                     msg = msg + indent + "---\n"
-                msg = msg + indent + token.name() + " " + str(round(total_tokens,2)) + " " + token.symbol() + " " + "${:,.2f}".format(total_tokens * price) + "\n"
-                msg = msg + indent + "**Claimable by yearn: " + str(round(claimable,2)) + " " + token.symbol() + " " + "${:,.2f}".format(claimable_usd) + "**\n"
+                msg = msg + indent + token.name() + " " + str(round(total_tokens,2)) + " " + token.symbol() + " " + total_tokens_price + "\n"
+                msg = msg + indent + "**Claimable by yearn: " + str(round(claimable,2)) + " " + token.symbol() + " " + claimable_usd_str + "**\n"
             if env == "PROD":
                 bot.send_message(chat_id, msg, parse_mode="markdown", disable_web_page_preview = True)
             print(msg)
