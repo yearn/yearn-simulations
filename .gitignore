@@ -7,3 +7,4 @@ reports/
 .env
 scripts/test.py
 bot/test.py
+address.txt
