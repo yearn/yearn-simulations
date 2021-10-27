@@ -194,12 +194,17 @@ def pre_harvest_custom(data):
     s = f"s_{strategy_address}"
     try:
         spec = importlib.util.spec_from_file_location("module.name", f"./plugins/{s}.py")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        data.pre.custom = dotdict({})
-        data = module.pre_harvest_custom(data)
+        try:
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            data.pre.custom = dotdict({})
+            data = module.pre_harvest_custom(data)
+        except:
+            print("Found pre-harvest script, but failed to load for ",data.strategy_address)
     except:
         print("No custom pre-harvest script found for "+data.strategy_address)
+        
+    
 
     return data
 

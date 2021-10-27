@@ -10,12 +10,15 @@ def pre_harvest_custom(data):
             A namespace for storage of pre-harvest data
     """
     strategy = interface.IStrategyRook(data.strategy_address)
-    with urllib.request.urlopen(
-            f"https://indibo-lpq3.herokuapp.com/reward_of_liquidity_provider/{data.strategy_address}") as url:
-        payload = json.loads(url.read().decode())
-        amount = int(payload["earnings_to_date"], 16)
-        nonce = int(payload["nonce"], 16)
-        signature = payload["signature"]
+    try:
+        with urllib.request.urlopen(
+                f"https://indibo-lpq4.herokuapp.com/reward_of_liquidity_provider/{data.strategy_address}") as url:
+            payload = json.loads(url.read().decode())
+            amount = int(payload["earnings_to_date"], 16)
+            nonce = int(payload["nonce"], 16)
+            signature = payload["signature"]
+    except:
+        print("KeeperDAO API request failed!")
     strategy.claimRewards(amount, nonce, signature, {'from': data.gov})
     return data
 
