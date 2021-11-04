@@ -8,62 +8,51 @@ from babel.dates import format_timedelta
 from ReportBuilder import report_builder
 from apr import report_apr, calc_apr
 
-address_type = "strategy"
 load_dotenv()
 env = os.environ.get("ENVIRONMENT") # Set environment
-chat_id = 1
-f = open("chatid.txt", "r", errors="ignore")
-chat_id = f.read().strip()
-fork_url = ""
 
-def main():
+def main(chat_id, address):
     chain.snapshot()
     load_dotenv()
-    # fork_base_url = "https://simulate.yearn.network/fork"
-    # fork_id = requests.post(fork_base_url, headers={}, json={"network_id": "1"}).json()['simulation_fork']['id']
-    # fork_rpc_url = f"https://rpc.tenderly.co/fork/{fork_id}"
-    # web3.provider = HTTPProvider(fork_rpc_url, {"timeout": 600})
+
     print(web3.provider.endpoint_uri,web3.provider.isConnected())
+
     simulation = dotdict({})
     simulation.apr = dotdict({})
     simulation.apr.strategies = []
     simulation.apr.pre_fee_apr_total = 0
     simulation.apr.post_fee_apr_total = 0
-    f = open("address.txt", "r", errors="ignore")
-    address = f.read().strip()
+
     simulation.address = address
     helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
-    oracle_address = "0x83d95e0D5f402511dB06817Aff3f9eA88224B030"
 
     if address == "all":
         simulation.address_type = "all"
-        get_all_addresses(helper_address, oracle_address, simulation)
+        get_all_addresses(helper_address, simulation, chat_id)
     elif check_if_vault(address):
         simulation.address_type = "vault"
-        get_all_vault_strats(address, helper_address, oracle_address, simulation)
+        get_all_vault_strats(address, helper_address, simulation, chat_id)
     else:
         simulation.address_type = "strategy"
-        single_address(address, simulation)
+        single_address(address, simulation, chat_id)
     print("Forked at block #",chain.height)
 
 
-def single_address(strategy_address, simulation):
-    simulation_iterator([strategy_address], simulation)
+def single_address(strategy_address, simulation, chat_id):
+    simulation_iterator([strategy_address], simulation, chat_id)
 
-def get_all_vault_strats(vault_address, helper_address, oracle_address, simulation):
+def get_all_vault_strats(vault_address, helper_address, simulation, chat_id):
     print("All strategies in vault: "+vault_address)
-    oracle = interface.IOracle(oracle_address)
     strategies_helper = interface.IStrategiesHelper(helper_address)
     strategies_addresses = strategies_helper.assetStrategiesAddresses(vault_address)
-    simulation_iterator(strategies_addresses, simulation)
+    simulation_iterator(strategies_addresses, simulation, chat_id)
 
-def get_all_addresses(helper_address, oracle_address, simulation):
-    oracle = interface.IOracle(oracle_address)
+def get_all_addresses(helper_address, simulation, chat_id):
     strategies_helper = interface.IStrategiesHelper(helper_address)
     strategies_addresses = strategies_helper.assetsStrategiesAddresses()
-    simulation_iterator(strategies_addresses, simulation)
+    simulation_iterator(strategies_addresses, simulation, chat_id)
 
-def simulation_iterator(strategies_addresses, simulation):
+def simulation_iterator(strategies_addresses, simulation, chat_id):
     run_report = []
     msg = str("Mainnet forked at block #: "+ "{:,}".format(chain.height)+ "\n\n"+str(len(strategies_addresses)))+" total strategies found.\n\nPlease wait while harvest(s) are queued ....."
     
@@ -93,10 +82,7 @@ def simulation_iterator(strategies_addresses, simulation):
             (data) = harvest(data)
             (data) = post_harvest(data)
             (data) = post_harvest_custom(data)
-            (data) = build_report(data)
-            # (data) = configure_alerts(data)
-            # (data) = configure_alerts_custom(data)
-            # (data) = build_telegram_message(data)
+            (data) = build_report(data, chat_id)
             data, simulation = calc_apr(data, simulation)
         report = dotdict({})
         run_report.append(report)
@@ -284,7 +270,7 @@ def post_harvest_custom(data):
     return data
     
 
-def build_report(data):
+def build_report(data, chat_id):
     """
         default alerts
         1. share price
