@@ -20,8 +20,6 @@ if [ -n "$address" ] && [ -n "$chat_id" ]
 then
     echo "Running simulation: $address"
     echo "Chat ID: $chat_id"
-    echo ${chat_id} > 'chatid.txt'
-    echo ${address} > 'address.txt'
     $BROWNIE_PATH run SimulateHarvests.py ${chat_id} ${address}
 
 else
