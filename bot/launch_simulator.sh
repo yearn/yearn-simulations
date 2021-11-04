@@ -16,18 +16,14 @@ done
 
 echo "address (launcher): $address";
 
-if [ -z "$vault" ] && [ -z "$strategy" ] && [ -z "$address" ]
+if [ -n "$address" ] && [ -n "$chat_id" ]
 then
-    echo "RUN EVERYTHING!!"
-
-    mode=a
-    sed -i "s/^MODE=.*/MODE=${mode}/" ./.env # Replace in .env file
-
-    $BROWNIE_PATH run SimulateHarvests.py
-else
     echo "Running simulation: $address"
     echo "Chat ID: $chat_id"
     echo ${chat_id} > 'chatid.txt'
     echo ${address} > 'address.txt'
-    $BROWNIE_PATH run SimulateHarvests.py
+    $BROWNIE_PATH run SimulateHarvests.py ${chat_id} ${address}
+
+else
+    echo "Usage: 'launch_simulator.sh -a <address> -i <chat-id>'"
 fi

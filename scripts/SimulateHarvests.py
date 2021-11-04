@@ -1,18 +1,13 @@
 from .TelegramBot import sendMessageToTelegram, sendResultToTelegram
 import importlib
 from utils import dotdict
-import json, os, sys, re, requests
+import os, sys, re
 from brownie import interface, accounts, web3, chain
-from dotenv import load_dotenv, find_dotenv
-from brownie.network.event import _decode_logs
+from dotenv import load_dotenv
 from babel.dates import format_timedelta
-from ReportBuilder import appender, report_builder, bool_description, pass_fail
+from ReportBuilder import report_builder
 from apr import report_apr, calc_apr
-from datetime import datetime
-import pandas as pd
-from web3 import HTTPProvider
 
-mode = "sim" # strategy mode by default
 address_type = "strategy"
 load_dotenv()
 env = os.environ.get("ENVIRONMENT") # Set environment
@@ -37,8 +32,6 @@ def main():
     f = open("address.txt", "r", errors="ignore")
     address = f.read().strip()
     simulation.address = address
-    f = open("mode.txt", "r", errors="ignore")
-    simulation.mode = f.read().strip()
     helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
     oracle_address = "0x83d95e0D5f402511dB06817Aff3f9eA88224B030"
 
@@ -108,7 +101,6 @@ def simulation_iterator(strategies_addresses, simulation):
         report = dotdict({})
         run_report.append(report)
         chain.reset()
-        # chain.revert()
         continue
     
     msg = "💪 Simulation Complete.\n"
@@ -303,19 +295,8 @@ def build_report(data):
                 - "warning"
                 - "info"
     """
-
     data, report_string = report_builder(data)
 
-    # Default alerts
-    
-    # Custom Data
-    #data= build_report_custom(data)
-    if mode == "apr":
-        print(mode)
-        print(data.post.est_apr_before_fees)
-        print(data.post.est_apr_after_fees)
-        data.post.est_apr_before_fees
-        data.post.est_apr_after_fees
     if env == "prod":
         sendResultToTelegram(report_string, chat_id)
     else:
