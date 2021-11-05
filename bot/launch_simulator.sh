@@ -20,7 +20,7 @@ if [ -n "$address" ] && [ -n "$chat_id" ]
 then
     echo "Running simulation: $address"
     echo "Chat ID: $chat_id"
-    $BROWNIE_PATH run SimulateHarvests.py ${chat_id} ${address}
+    $BROWNIE_PATH run SimulateHarvests.py main ${chat_id} ${address}
 
 else
     echo "Usage: 'launch_simulator.sh -a <address> -i <chat-id>'"
