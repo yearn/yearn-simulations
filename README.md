@@ -43,4 +43,12 @@ You'll have a lot of power here to inject data or alerts. Reference the data mod
 `data.pre.custom`: Any data in this namespace is available for you to use how you wish
 `data.post.custom`: Any data in this namespace is available for you to use how you wish  
 `data.custom_report`: This is where you pass an array of "name/value" pair objects which will get posted  
-`data.custom_alerts`: This is wehere you pass in an array of name value pairs + log level which is ultimately responsible for triggering alerts and will be displayed in the alerts section of output 
+`data.custom_alerts`: This is where you pass in an array of name value pairs + log level which is ultimately responsible for triggering alerts and will be displayed in the alerts section of output
+
+## Deploy
+
+The infrastructure for this project is defined [here](https://github.com/numan/yearn-simulations-infra).
+
+To deploy, use the `./prod-deploy` script. The script uses [ecs-deploy](https://github.com/silinternational/ecs-deploy) script.
+
+Deploying builds a new docker container, uploads it to Elastic Container Repository, creates a new ECS task and deploys the task to the production ECS cluster.
