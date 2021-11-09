@@ -2,7 +2,7 @@
 COMMIT_ID=$(git rev-parse --verify HEAD)
 CLUSTER_NAME="YearnSimulationsInfraStack-YearnSimulationsCluster09747959-9VbPrg35xCGO"
 SERVICE_NAME="YearnSimulationsInfraStack-SimulatorBotService0D0A55C9-5lKa7zoMP1xF"
-TASK_NAME="YearnSimulationsInfraStackSimulatorBotTaskDefinition7FCDCB36./"
+TASK_NAME="YearnSimulationsInfraStackSimulatorBotTaskDefinition7FCDCB36"
 CONTAINER_REPO="377926405243.dkr.ecr.us-east-1.amazonaws.com"
 
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${CONTAINER_REPO}
