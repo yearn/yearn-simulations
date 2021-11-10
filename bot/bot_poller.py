@@ -1,17 +1,13 @@
-import urllib
-import sys, subprocess, os, time
+import sys, subprocess, os
 import logging
 import json
 from web3 import Web3
 from telegram import Update
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
 from telegram.ext.dispatcher import run_async
 from telegram.ext import (
     Updater,
     CommandHandler,
-    MessageHandler,
-    Filters,
-    ConversationHandler,
     CallbackContext,
 )
 
