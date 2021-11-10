@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -e 
 set -o pipefail
-AWS_PAGER=""
 
 COMMIT_ID=$(git rev-parse --verify HEAD)
 CLUSTER_NAME="YearnSimulationsInfraStack-YearnSimulationsCluster09747959-GlcspAURHpm3"
