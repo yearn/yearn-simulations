@@ -13,6 +13,8 @@ RUN pip install -U pip && \
     pip install -r requirements.txt && \
     pip cache purge
 
+RUN python -c "from brownie.project.compiler import install_solc;from brownie.project.compiler.vyper import install_vyper;install_solc(\"0.5.10\");install_vyper(\"0.2.4\");"
+
 # Set up code directory
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
