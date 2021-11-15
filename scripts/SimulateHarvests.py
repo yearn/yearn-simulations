@@ -25,7 +25,15 @@ def main(chat_id, address, chain_id):
     simulation.apr.post_fee_apr_total = 0
 
     simulation.address = address
-    helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
+    if chain_id == "1":
+        gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
+        treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
+        helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
+    if chain_id == "250":
+        gov = accounts.at("0xC0E2830724C946a6748dDFE09753613cd38f6767", force=True)
+        treasury = accounts.at("0x89716ad7edc3be3b35695789c475f3e7a3deb12a", force=True)
+        helper_address = "0xE55Dd55b3355c261A048B3f310706C7478657d74"
+    
 
     if address == "all":
         simulation.address_type = "all"
