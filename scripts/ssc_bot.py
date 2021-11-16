@@ -99,7 +99,11 @@ def main():
         harvest_indicator = ""
         tend_indicator = ""
         # if hours_since_last > 200 or profit_usd > 50_000:
+<<<<<<< HEAD
         if hours_since_last > 200 or profit_usd > 65_000:
+=======
+        if profit_usd > 65_000:
+>>>>>>> 95136a5628d862ee5dc9e04e0b023017f956712d
             harvest_indicator = "\U0001F468" + "\u200D" + "\U0001F33E "
         if usd_tendable > 0:
             tend_indicator = "\U0001F33E "

@@ -2,7 +2,7 @@ from .TelegramBot import sendMessageToTelegram, sendResultToTelegram
 import importlib
 from utils import dotdict
 import os, sys, re
-from brownie import interface, accounts, web3, chain
+from brownie import interface, accounts, web3, chain, network
 from dotenv import load_dotenv
 from babel.dates import format_timedelta
 from ReportBuilder import report_builder
@@ -11,9 +11,10 @@ from apr import report_apr, calc_apr
 load_dotenv()
 env = os.environ.get("ENVIRONMENT") # Set environment
 
-def main(chat_id, address):
+def main(chat_id, address, chain_id):
     chain.snapshot()
     load_dotenv()
+    change_fork(chain_id)
 
     print(web3.provider.endpoint_uri,web3.provider.isConnected())
 
@@ -24,35 +25,43 @@ def main(chat_id, address):
     simulation.apr.post_fee_apr_total = 0
 
     simulation.address = address
-    helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
+    if chain_id == "1":
+        gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
+        treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
+        helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
+    if chain_id == "250":
+        gov = accounts.at("0xC0E2830724C946a6748dDFE09753613cd38f6767", force=True)
+        treasury = accounts.at("0x89716ad7edc3be3b35695789c475f3e7a3deb12a", force=True)
+        helper_address = "0xE55Dd55b3355c261A048B3f310706C7478657d74"
+    
 
     if address == "all":
         simulation.address_type = "all"
-        get_all_addresses(helper_address, simulation, chat_id)
+        get_all_addresses(helper_address, simulation, chat_id, chain_id)
     elif check_if_vault(address):
         simulation.address_type = "vault"
-        get_all_vault_strats(address, helper_address, simulation, chat_id)
+        get_all_vault_strats(address, helper_address, simulation, chat_id, chain_id)
     else:
         simulation.address_type = "strategy"
-        single_address(address, simulation, chat_id)
+        single_address(address, simulation, chat_id, chain_id)
     print("Forked at block #",chain.height)
 
 
-def single_address(strategy_address, simulation, chat_id):
-    simulation_iterator([strategy_address], simulation, chat_id)
+def single_address(strategy_address, simulation, chat_id, chain_id):
+    simulation_iterator([strategy_address], simulation, chat_id, chain_id)
 
-def get_all_vault_strats(vault_address, helper_address, simulation, chat_id):
+def get_all_vault_strats(vault_address, helper_address, simulation, chat_id, chain_id):
     print("All strategies in vault: "+vault_address)
     strategies_helper = interface.IStrategiesHelper(helper_address)
     strategies_addresses = strategies_helper.assetStrategiesAddresses(vault_address)
-    simulation_iterator(strategies_addresses, simulation, chat_id)
+    simulation_iterator(strategies_addresses, simulation, chat_id, chain_id)
 
-def get_all_addresses(helper_address, simulation, chat_id):
+def get_all_addresses(helper_address, simulation, chat_id, chain_id):
     strategies_helper = interface.IStrategiesHelper(helper_address)
     strategies_addresses = strategies_helper.assetsStrategiesAddresses()
-    simulation_iterator(strategies_addresses, simulation, chat_id)
+    simulation_iterator(strategies_addresses, simulation, chat_id, chain_id)
 
-def simulation_iterator(strategies_addresses, simulation, chat_id):
+def simulation_iterator(strategies_addresses, simulation, chat_id, chain_id):
     run_report = []
     msg = str("Mainnet forked at block #: "+ "{:,}".format(chain.height)+ "\n\n"+str(len(strategies_addresses)))+" total strategies found.\n\nPlease wait while harvest(s) are queued ....."
     
@@ -61,9 +70,13 @@ def simulation_iterator(strategies_addresses, simulation, chat_id):
     else:
         print(msg)
     
-
-    gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
-    treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
+    if chain_id == "1":
+        gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
+        treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
+    if chain_id == "250":
+        gov = accounts.at("0xC0E2830724C946a6748dDFE09753613cd38f6767", force=True)
+        treasury = accounts.at("0x89716ad7edc3be3b35695789c475f3e7a3deb12a", force=True)
+    
     for strategy_address in strategies_addresses:
         data = dotdict({})
         data.pre = dotdict({}) # Here is where we'll keep all the pre-harvest data
@@ -311,3 +324,10 @@ def check_if_vault(addr):
 
 def output_aprs():
     print()
+
+def change_fork(chain_id):
+    network.disconnect()
+    if chain_id == "1":
+        network.connect('mainnet-fork')
+    if chain_id == "250":
+        network.connect('ftm-main-fork')
