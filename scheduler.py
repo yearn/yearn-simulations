@@ -1,7 +1,27 @@
 import functools
 from types import FunctionType
+from typing import List, Dict
 
-SCHEDULED_SCRIPTS = []
+
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class ScheduledScripts(metaclass=Singleton):
+    def __init__(self) -> None:
+        self._scheduled_scripts = []
+
+    def add(self, item: "ScheduledScript"):
+        self._scheduled_scripts.append(item)
+
+    @property
+    def scheduled_scripts(self):
+        return self._scheduled_scripts
 
 
 class ScheduledScript:
@@ -9,6 +29,8 @@ class ScheduledScript:
         self,
         script: FunctionType,
         telegram_chat_id: str,
+        environment: Dict[str, str] = None,
+        secrets: List[str] = None,
         day: str = None,
         hour: str = None,
         minute: str = None,
@@ -24,6 +46,14 @@ class ScheduledScript:
         self.week_day = week_day
         self.year = year
         self.telegram_chat_id = telegram_chat_id
+        self.environment = environment
+        self.secrets = secrets
+
+        if environment is None:
+            self.environment = {}
+
+        if secrets is None:
+            self.secrets = []
 
     def __str__(self):
 
@@ -31,7 +61,9 @@ class ScheduledScript:
 
 
 def schedule_script(
-    telegram_chat_id: str = None,
+    telegram_chat_id: str,
+    environment: Dict[str, str] = None,
+    secrets: List[str] = None,
     day: str = None,
     hour: str = None,
     minute: str = None,
@@ -40,14 +72,18 @@ def schedule_script(
     year: str = None,
 ):
     def script(func):
+        global schedule_scripts_storage
+
         @functools.wraps(func)
         def wrapped_script(*args, **kwargs):
             return func(*args, **kwargs)
-        print("wrapping brownie script....")
-        SCHEDULED_SCRIPTS.append(
+
+        schedule_scripts_storage.add(
             ScheduledScript(
                 wrapped_script,
                 telegram_chat_id,
+                environment=environment,
+                secrets=secrets,
                 day=day,
                 hour=hour,
                 minute=minute,
@@ -59,3 +95,6 @@ def schedule_script(
         return wrapped_script
 
     return script
+
+
+schedule_scripts_storage = ScheduledScripts()

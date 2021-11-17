@@ -15,7 +15,7 @@ SSC_BOT_KEY = os.environ.get("TELEGRAM_BOT_KEY", os.getenv("SSC_BOT_KEY"))
 USE_DYNAMIC_LOOKUP = os.getenv("USE_DYNAMIC_LOOKUP")
 ENV = os.getenv("ENV")
 
-@schedule_script("@yfitestchannel", minute="0", hour="0,8,16")
+@schedule_script("@yfitestchannel", minute="0", hour="0,8,16", environment={"USE_DYNAMIC_LOOKUP": "False"})
 def main():
     bot = telebot.TeleBot(SSC_BOT_KEY)
     report_string = []
