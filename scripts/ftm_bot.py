@@ -6,26 +6,23 @@ import telebot
 from brownie import (
     Contract,
     accounts,
-    chain,
-    rpc,
-    web3,
-    history,
     interface,
-    Wei,
     ZERO_ADDRESS,
 )
-import time, re, json
+import time
+from scheduler import schedule_script
 
 load_dotenv()
-SSC_BOT_KEY = os.getenv("SSC_BOT_KEY")
+SSC_BOT_KEY = os.environ.get("TELEGRAM_BOT_KEY", os.getenv("SSC_BOT_KEY"))
 USE_DYNAMIC_LOOKUP = os.getenv("USE_DYNAMIC_LOOKUP")
 ENV = os.getenv("ENV")
 
+@schedule_script("@yfitestchannel", minute="0", hour="0,12")
 def main():
     bot = telebot.TeleBot(SSC_BOT_KEY)
     report_string = []
     test_group = os.getenv("TEST_GROUP")
-    prod_group = os.getenv("FTM_GROUP")
+    prod_group = os.environ.get("TELEGRAM_CHAT_ID", os.getenv("FTM_GROUP"))
     if ENV == "PROD":
         chat_id = prod_group
     else:
