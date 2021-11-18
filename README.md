@@ -45,13 +45,14 @@ You'll have a lot of power here to inject data or alerts. Reference the data mod
 `data.custom_report`: This is where you pass an array of "name/value" pair objects which will get posted  
 `data.custom_alerts`: This is where you pass in an array of name value pairs + log level which is ultimately responsible for triggering alerts and will be displayed in the alerts section of output
 
-## Deploy
+## GitHub Actions
 
-The infrastructure for this project is defined [here](https://github.com/numan/yearn-simulations-infra).
+To configure GitHub Actions, you need to create an environment named `production` [here](https://github.com/yearn/yearn-simulations/settings/environments) and add the following secrets:
 
-To deploy, use the `./prod-deploy` script. The script uses [ecs-deploy](https://github.com/silinternational/ecs-deploy) script.
+1. `AWS_ACCESS_KEY_ID`
+2. `AWS_SECRET_ACCESS_KEY`
+3. `YEARN_SIMULATIONS_INFRA_GITHUB_TOKEN` - A GitHub token with permissions to trigger workflows in the https://github.com/numan/yearn-simulations-infra repository
 
-Deploying builds a new docker container, uploads it to Elastic Container Repository, creates a new ECS task and deploys the task to the production ECS cluster.
 
 # Creating a New Scheduled Bot
 
@@ -126,5 +127,15 @@ def main():
     else:
         print(report)
 
-
 ```
+
+## Deployment Workflow
+
+![Deployment Workflow](images/YearnBotWorkflow.png "Deployment Workflow")
+
+Any brownie script decorated with the `@schedule_script` decorator automatically gets deployed as a scheduled task in production when merged into the `master` branch.
+
+1. Builds a docker container and deploys the container to an `Elastic Container Registry`
+2. Triggers a GitHub Action in the https://github.com/numan/yearn-simulations-infra repository
+3. Clones this repository and builds a `Fargate Scheduled Task` for every brownie script decorated with the `@schedule_script` decorator
+4. Builds and updates the production infrastructure
