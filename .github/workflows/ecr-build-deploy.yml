@@ -28,6 +28,7 @@ jobs:
           aws ecs describe-task-definition --task-definition ProductionYearnSimulationsInfraStackSimulatorBotTaskDefinitionC9C3D960 --query taskDefinition > task-definition.json
 
       - name: Build, tag, and push image to Amazon ECR
+        id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: productionsharedstack06a6756f-simscheduledtasksrepository0bbaad80-vrmafd8mpqpn
