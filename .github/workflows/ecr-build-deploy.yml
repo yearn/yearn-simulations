@@ -58,6 +58,4 @@ jobs:
 
       - name: Trigger Infrastructure Deploy
         run: |
-          curl -H "Authorization: token ${YEARN_SIMULATIONS_INFRA_GITHUB_TOKEN}" -H 'Accept: application/vnd.github.everest-preview+json' "https://api.github.com/repos/numan/yearn-simulations-infra/dispatches" -d '{"event_type": "deploy_infra", "client_payload": {"SHA": "${GITHUB_SHA}"}}'
-        env:
-          YEARN_SIMULATIONS_INFRA_GITHUB_TOKEN: ${{ secrets.YEARN_SIMULATIONS_INFRA_GITHUB_TOKEN }}
+          curl -H "Authorization: token ${{ secrets.YEARN_SIMULATIONS_INFRA_GITHUB_TOKEN }}" -H 'Accept: application/vnd.github.everest-preview+json' "https://api.github.com/repos/numan/yearn-simulations-infra/dispatches" -d '{"event_type": "deploy_infra", "client_payload": {"SHA": "${{ github.sha }}"}}'
