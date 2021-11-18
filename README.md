@@ -55,7 +55,7 @@ Deploying builds a new docker container, uploads it to Elastic Container Reposit
 
 # Creating a New Scheduled Bot
 
-To create a new (brownie script)[https://eth-brownie.readthedocs.io/en/stable/interaction.html#writing-scripts], that can output reports to telegram, use the following conventions:
+To create a new [brownie script](https://eth-brownie.readthedocs.io/en/stable/interaction.html#writing-scripts), that can output reports to telegram, use the following conventions:
 
 1. Use the environment variable `TELEGRAM_BOT_KEY` as credentials for your telegram bot
 2. Use the environment variable `TELEGRAM_CHAT_ID` as the Telegram chat channel to post output to
@@ -72,7 +72,7 @@ Any brownie script decorated with the  `@schedule_script` decorator will automat
 | **telegram_chat_id**  | The telegram channel you want to output of this script to go to  | `@schedule_script("-1001577510189")` |
 | **environment**  | Additional environment variables you want to include when running the scheduled script in production. All values provided must be strings. | `@schedule_script("@yfitestchannel", environment={"USE_DYNAMIC_LOOKUP": "False"})` |
 | **secrets**  | Names of additional secrets you want to include in production. **WARNING:** Never include values for any secrets in this repository. Secrets must be provided to an AWS Admin and stored in the Secrets vault before they become available to brownie script in production. | `@schedule_script("@yfitestchannel", secrets=['GITHUB_TOKEN_ID'])` |
-| **day**, **hour**, **minute**, **month**, **week_day**, **year** (Scheduling)  | How often do you want to run this script in production. See (this documentation)[https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#CronExpressions] for details on how to define your schedule. All scheduled times are in UTC. | `@schedule_script("@yfitestchannel", minute="0", hour="0,8,16")` # Schedule the script to run every day at 12AM, 8AM and 4PM UTC |
+| **day**, **hour**, **minute**, **month**, **week_day**, **year** (Scheduling)  | How often do you want to run this script in production. See [this documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#CronExpressions) for details on how to define your schedule. All scheduled times are in UTC. | `@schedule_script("@yfitestchannel", minute="0", hour="0,8,16")` # Schedule the script to run every day at 12AM, 8AM and 4PM UTC |
 
 ## Examples
 
