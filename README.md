@@ -60,7 +60,7 @@ To create a new [brownie script](https://eth-brownie.readthedocs.io/en/stable/in
 
 1. Use the environment variable `TELEGRAM_BOT_KEY` as credentials for your telegram bot
 2. Use the environment variable `TELEGRAM_CHAT_ID` as the Telegram chat channel to post output to
-3. In production, there is an environment variable made available name `ENV`. If the value of `ENV` is `PROD`, then you are running in production. You want want to use this for different behavior in production vs development.
+3. In production, there is an environment variable made available name `ENV`. If the value of `ENV` is `PROD`, then you are running in production. You can use this for different behavior in production vs development.
 
 Brownie scripts that follow this convention with automatically be deployed once merged. The environment variables mentioned above will automatically be available to the brownie script in production.
 
