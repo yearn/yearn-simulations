@@ -44,7 +44,7 @@ def main():
     count = 0
     for i, s in enumerate(sscs):
         string = ""
-        strat = interface.IStrategy32(s)
+        strat = interface.IStrategy042(s)
         vault = assess_vault_version(strat.vault())
         token = interface.IERC20(vault.token())
         token_price = get_price(oracle, token.address)
@@ -68,14 +68,18 @@ def main():
             continue
         
         count = count + 1
-        
         try:
             print("Harvesting strategy: " + s)
             if strat.address == accumulator:
                 strat = interface.Accumulator(strat.address)
                 slip = strat.slippageProtectionOut()
                 strat.updateSlippageProtectionOut(100,{"from":gov})
-            tx = strat.harvest({'from': gov})
+            try:
+                strat.doHealthCheck()
+                strat.setDoHealthCheck(False, {'from': gov})
+                tx = strat.harvest({'from': gov})
+            except:
+                tx = strat.harvest({'from': gov})
         except:
             string = "\n\n" + strat.name() + s + "\n\U0001F6A8 Failed Harvest!\n"
             report_string.append(string)
@@ -83,8 +87,9 @@ def main():
         
         params = vault.strategies(strat)
         profit = params.dict()["totalGain"] - before_gain
-        profit_usd = token_price * profit / 10**token.decimals()
         loss = params.dict()["totalLoss"] - before_loss
+        net_profit = profit - loss
+        profit_usd = token_price * net_profit / 10**token.decimals()
         debt_delta = params.dict()["totalDebt"] - before_debt
         debt_delta_usd = token_price * debt_delta / 10**token.decimals()
         percent = 0
