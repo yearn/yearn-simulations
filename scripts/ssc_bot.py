@@ -158,12 +158,16 @@ def lookup_sscs():
         for s in v2_strategies:
             strat = interface.IStrategy32(s)
             name = strat.name().lower()
-            style1 = re.search("singlesided", name)
+            style1 = re.search("singlesidedc", name)
             style2 = re.search("ssc", name)
-            if style1 or style2:
-                ssc_strats.append(s)
+            style3 = re.search("SingleSidedBalancer", name)
+            if (style1 or style2) and not style3:
                 vault = interface.IVault032(strat.vault())
-                print(strat.address, vault.name(), strat.name())
+                if vault.strategies(strat).dict()["debtRatio"] > 0:
+                    ssc_strats.append(s)
+                    print("Found:",strat.address, vault.name(), strat.name())
+                else:
+                    print("Skipping...",strat.address, vault.name(), strat.name())
 
     return ssc_strats
 
