@@ -58,12 +58,14 @@ def main():
                 message = message + f'First {holder_number} holders have a {whale_weight:,.2f}% of total supply\n'
                 message = message + f'Total Supply: {vault_total_supply:,.2f} {vault.symbol()} with a value of {vault_total_supply * (vault.pricePerShare()/(10 ** token_decimals)) * token_price:,.2f} USDC\n' 
                 print(message)
-                bot.send_message(chat_id, message, parse_mode="markdown", disable_web_page_preview = True)
+                if env == "PROD":
+                    bot.send_message(chat_id, message, parse_mode="markdown", disable_web_page_preview = True)
                 break
             except:
                 message = f"Withdraw of {percentage}% failed."
                 print(message)
-                bot.send_message(chat_id, message, parse_mode="markdown", disable_web_page_preview = True)
+                if env == "PROD":
+                    bot.send_message(chat_id, message, parse_mode="markdown", disable_web_page_preview = True)
 
             chain.undo(1)
 
