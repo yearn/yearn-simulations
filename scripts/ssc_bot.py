@@ -119,7 +119,10 @@ def main():
                 continue # Skip yvBOOST, no attention needed
         
         df = pd.DataFrame(index=[''])
-        df[harvest_indicator+tend_indicator+strat.name()] = s
+        name = strat.name()
+        if strat.address == "0x65A8efC842D2Ba536d3F781F504A1940f61124b4":
+            name = "ssc_usdt_ib"
+        df[harvest_indicator+tend_indicator + name] = s
         df[vault.name() + " " + vault.apiVersion()] = vault.address
         df["Time Since Harvest: "] =      since_last
         df["Profit on Harvest USD"] =   "${:,.2f}".format(profit_usd)
