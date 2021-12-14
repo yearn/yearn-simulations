@@ -53,8 +53,8 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
+          cluster: ProductionYearnSimulationsInfraStack5A54351E-YearnSimulationsCluster09747959-3WNGOSWH0WUO
           service: ProductionYearnSimulationsInfraStack5A54351E-SimulatorBotService0D0A55C9-AU0SsacP27JJ
-          cluster: ProductionYearnSimulationsInfraStack5A54351E-SimulatorBotService0D0A55C9-DU8lFpSH15yz
           wait-for-service-stability: true
 
       - name: Trigger Infrastructure Deploy
