@@ -65,7 +65,6 @@ def main():
                     spell_price = requests.get(url).json()["spell-token"]["usd"]
                     price = spell_price
                 else:
-                    continue
                     price = oracle.getPriceUsdcRecommended(r) / 10**6
                 token = interface.IERC20(r)
                 total_tokens = bribev2.reward_per_token(g, r) / 10**token.decimals()
