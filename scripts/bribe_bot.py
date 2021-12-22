@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 import pandas as pd
 from datetime import datetime
-import telebot
+import telebot, requests
 from brownie import (
     Contract,
     accounts,
@@ -39,6 +39,7 @@ def main():
     days_since_last_vote = 100
     can_vote = True
     next_vote_available = 0
+    spell = "0x090185f2135308BaD17527004364eBcC2D37e5F6"
     for i in range(0, num_gauges):
         msg = ""
         gauge_controller.gauge_relative_weight
@@ -59,7 +60,13 @@ def main():
             msg = msg + "[" + lp_name + "](https://etherscan.io/address/"+g+")\n"
             period = round(round(time.time()) / WEEK) * WEEK - WEEK
             for i,  r in enumerate(rewards):
-                price = oracle.getPriceUsdcRecommended(r) / 10**6
+                if r == spell:
+                    url = "https://api.coingecko.com/api/v3/simple/price?ids=spell-token&vs_currencies=usd"
+                    spell_price = requests.get(url).json()["spell-token"]["usd"]
+                    price = spell_price
+                else:
+                    continue
+                    price = oracle.getPriceUsdcRecommended(r) / 10**6
                 token = interface.IERC20(r)
                 total_tokens = bribev2.reward_per_token(g, r) / 10**token.decimals()
                 total_tokens = total_tokens * gauge_controller.points_weight(g, period).dict()["slope"] / 1e18

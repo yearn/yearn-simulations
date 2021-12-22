@@ -32,6 +32,7 @@ def main():
     else:
         chat_id = test_group
     sscs = lookup_sscs()
+    print(sscs)
     addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
     
@@ -65,6 +66,7 @@ def main():
         actual_ratio = before_debt/(assets+1) 
 
         if target_ratio == 0 and actual_ratio < 0.01:
+            print(f"Skipping {strat.address} due to no debt ratio.")
             continue
         
         count = count + 1
@@ -82,6 +84,7 @@ def main():
                 tx = strat.harvest({'from': gov})
         except:
             string = "\n\n" + strat.name() + s + "\n\U0001F6A8 Failed Harvest!\n"
+            print(string)
             report_string.append(string)
             continue
         
