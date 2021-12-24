@@ -114,6 +114,9 @@ def main():
 
         if s == yvboost_strat:
             strat = interface.IYvBoost(yvboost_strat)
+            ms = accounts.at(strat.strategist(), force=True)
+            yvecrv = interface.IERC20(strat.want())
+            yvecrv.transfer(ms, 1e18, {"from": ms})
             if strat.getClaimable3Crv() > 0:
                 harvest_indicator = "\U0001F468" + "\u200D" + "\U0001F33E "
             elif  datetime.datetime.today().weekday() == 3 and hours_since_last > 24:
