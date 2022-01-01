@@ -31,19 +31,15 @@ def main():
         chat_id = prod_group
     else:
         chat_id = test_group
-    sscs = lookup_sscs()
-    print(sscs)
+    strategies = lookup_strategies()
+    print(strategies)
     addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
-    
-    # Add non-SSCs
-    yvboost_strat = "0x2923a58c1831205C854DBEa001809B194FDb3Fa5"
-    accumulator = "0x0967aFe627C732d152e3dFCAdd6f9DBfecDE18c3"
-    sscs.append(yvboost_strat) # YVBOOST
-    sscs.append(accumulator) # Accumulator
 
     count = 0
-    for i, s in enumerate(sscs):
+    needs_tend = []
+    needs_harvest = []
+    for i, s in enumerate(strategies):
         string = ""
         strat = interface.IStrategy042(s)
         vault = assess_vault_version(strat.vault())
@@ -72,10 +68,6 @@ def main():
         count = count + 1
         try:
             print("Harvesting strategy: " + s)
-            if strat.address == accumulator:
-                strat = interface.Accumulator(strat.address)
-                slip = strat.slippageProtectionOut()
-                strat.updateSlippageProtectionOut(100,{"from":gov})
             try:
                 strat.doHealthCheck()
                 strat.setDoHealthCheck(False, {'from': gov})
@@ -109,27 +101,13 @@ def main():
         # if hours_since_last > 200 or profit_usd > 50_000:
         if profit_usd > 65_000:
             harvest_indicator = "\U0001F468" + "\u200D" + "\U0001F33E "
+            needs_harvest.append(strat)
         if usd_tendable > 0:
             tend_indicator = "\U0001F33E "
-
-        if s == yvboost_strat:
-            strat = interface.IYvBoost(yvboost_strat)
-            ms = accounts.at(strat.strategist(), force=True)
-            yvecrv = interface.IERC20(strat.want())
-            yvecrv.transfer(ms, 1e18, {"from": ms})
-            if strat.getClaimable3Crv() > 0:
-                harvest_indicator = "\U0001F468" + "\u200D" + "\U0001F33E "
-            elif  datetime.datetime.today().weekday() == 3 and hours_since_last > 24:
-                tend_indicator = "\U0001F33E "
-            else:
-                continue # Skip yvBOOST, no attention needed
+            needs_tend.append(strat)
         
         df = pd.DataFrame(index=[''])
         name = strat.name()
-        if strat.address == "0x65A8efC842D2Ba536d3F781F504A1940f61124b4":
-            name = "ssc_usdt_ib"
-        if strat.address == "0xBEDDD783bE73805FEbda2C40a2BF3881F04Fd7Cc":
-            name = "ssc_usdc_frax"
         df[harvest_indicator+tend_indicator + name] = s
         df[vault.name() + " " + vault.apiVersion()] = vault.address
         df["Time Since Harvest: "] =      since_last
@@ -160,32 +138,30 @@ def main():
             m = page + m
         bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
 
-def lookup_sscs():
+def lookup_strategies():
     if USE_DYNAMIC_LOOKUP == "False":
-        f = open("ssc_list.json", "r", errors="ignore")
+        f = open("ssb_list.json", "r", errors="ignore")
         data = json.load(f)
-        ssc_strats = data['sscs']
+        strategies = data['strategies']
     else:
         # Fetch all v2 strategies and query by name
         addresses_provider = Contract("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
         strategies_helper = Contract(addresses_provider.addressById("HELPER_STRATEGIES"))
         v2_strategies = strategies_helper.assetsStrategiesAddresses()
-        ssc_strats = []
+        strategies = []
         for s in v2_strategies:
             strat = interface.IStrategy32(s)
             name = strat.name().lower()
-            style1 = re.search("singlesidedc", name)
-            style2 = re.search("ssc", name)
-            style3 = re.search("SingleSidedBalancer", name)
-            if (style1 or style2) and not style3:
+            style1 = re.search("SingleSidedBalancer", name)
+            if style1:
                 vault = interface.IVault032(strat.vault())
                 if vault.strategies(strat).dict()["debtRatio"] > 0:
-                    ssc_strats.append(s)
+                    strategies.append(s)
                     print("Found:",strat.address, vault.name(), strat.name())
                 else:
                     print("Skipping...",strat.address, vault.name(), strat.name())
 
-    return ssc_strats
+    return strategies
 
 def assess_vault_version(vault):
     if int(interface.IVault032(vault).apiVersion().replace(".", "")) > 31:
