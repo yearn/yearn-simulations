@@ -29,6 +29,8 @@ def main(chat_id, address, chain_id):
         gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
         treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
         helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
+        addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
+        oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
     if chain_id == "250":
         gov = accounts.at("0xC0E2830724C946a6748dDFE09753613cd38f6767", force=True)
         treasury = accounts.at("0x89716ad7edc3be3b35695789c475f3e7a3deb12a", force=True)
@@ -37,31 +39,31 @@ def main(chat_id, address, chain_id):
 
     if address == "all":
         simulation.address_type = "all"
-        get_all_addresses(helper_address, simulation, chat_id, chain_id)
+        get_all_addresses(helper_address, simulation, chat_id, chain_id, oracle)
     elif check_if_vault(address):
         simulation.address_type = "vault"
-        get_all_vault_strats(address, helper_address, simulation, chat_id, chain_id)
+        get_all_vault_strats(address, helper_address, simulation, chat_id, chain_id, oracle)
     else:
         simulation.address_type = "strategy"
-        single_address(address, simulation, chat_id, chain_id)
+        single_address(address, simulation, chat_id, chain_id, oracle)
     print("Forked at block #",chain.height)
 
 
-def single_address(strategy_address, simulation, chat_id, chain_id):
-    simulation_iterator([strategy_address], simulation, chat_id, chain_id)
+def single_address(strategy_address, simulation, chat_id, chain_id, oracle):
+    simulation_iterator([strategy_address], simulation, chat_id, chain_id, oracle)
 
-def get_all_vault_strats(vault_address, helper_address, simulation, chat_id, chain_id):
+def get_all_vault_strats(vault_address, helper_address, simulation, chat_id, chain_id, oracle):
     print("All strategies in vault: "+vault_address)
     strategies_helper = interface.IStrategiesHelper(helper_address)
     strategies_addresses = strategies_helper.assetStrategiesAddresses(vault_address)
-    simulation_iterator(strategies_addresses, simulation, chat_id, chain_id)
+    simulation_iterator(strategies_addresses, simulation, chat_id, chain_id, oracle)
 
 def get_all_addresses(helper_address, simulation, chat_id, chain_id):
     strategies_helper = interface.IStrategiesHelper(helper_address)
     strategies_addresses = strategies_helper.assetsStrategiesAddresses()
-    simulation_iterator(strategies_addresses, simulation, chat_id, chain_id)
+    simulation_iterator(strategies_addresses, simulation, chat_id, chain_id, oracle)
 
-def simulation_iterator(strategies_addresses, simulation, chat_id, chain_id):
+def simulation_iterator(strategies_addresses, simulation, chat_id, chain_id, oracle):
     run_report = []
     msg = str("Mainnet forked at block #: "+ "{:,}".format(chain.height)+ "\n\n"+str(len(strategies_addresses)))+" total strategies found.\n\nPlease wait while harvest(s) are queued ....."
     
@@ -149,6 +151,11 @@ def pre_harvest(data):
     data.token = interface.IERC20(data.token_address)
     data.token_decimals = data.token.decimals()
     data.token_symbol = data.token.symbol()
+    try:
+        data.token_price = oracle.getPriceUsdcRecommended(data.token_address) / 10**6
+    except:
+        print("cannot find token price", data.token_address, data.token_symbol)
+        data.token_price = 0
     dust = 10**(data.token_decimals / 2)
     if strategy.isActive() and strategy.estimatedTotalAssets() > dust:
         data.strategy_name = strategy.name()

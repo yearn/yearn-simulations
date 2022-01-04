@@ -78,12 +78,19 @@ def report_builder(data):
         r.name = "Harvest failed!"
         r.value = f"no data available."
     else:
+        r.name = "Net Profit on harvest"
+        net_profit = (data.post.gain_delta / d) - (data.post.loss_delta / d)
+        r.value = "{:,4f}".format(net_profit) + "($" + "{:,.2f}".format(data.token_price * net_profit) + ")"
+        i, r = appender(i, r)
+        r.name = "APR before fees"
+        r.value = f"{est_apr_before_fees}"
+        i, r = appender(i, r)
+        r.name = "APR after fees"
+        r.value = f"{est_apr_after_fees}"
+        i, r = appender(i, r)
         i, r = appender(i, r)
         r.name = "Last harvest"
         r.value = f"{data.time_since_last_harvest}"
-        i, r = appender(i, r)
-        r.name = "Net Profit on harvest"
-        r.value = "{:,}".format((data.post.gain_delta / d) - (data.post.loss_delta / d))
         i, r = appender(i, r)
         r.name = "Debt delta"
         r.value = f"{data.post.debt_delta / d}"
@@ -96,12 +103,6 @@ def report_builder(data):
         i, r = appender(i, r)
         r.name = "Total fees"
         r.value = "{:,}".format(data.post.total_fee_delta / d)
-        i, r = appender(i, r)
-        r.name = "APR before fees"
-        r.value = f"{est_apr_before_fees}"
-        i, r = appender(i, r)
-        r.name = "APR after fees"
-        r.value = f"{est_apr_after_fees}"
         i, r = appender(i, r)
         r.name = "Previous PPS"
         r.value =  f"{data.pre.price_per_share / d}"
