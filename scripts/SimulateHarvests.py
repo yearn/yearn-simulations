@@ -39,31 +39,31 @@ def main(chat_id, address, chain_id):
 
     if address == "all":
         simulation.address_type = "all"
-        get_all_addresses(helper_address, simulation, chat_id, chain_id, oracle)
+        get_all_addresses(helper_address, simulation, chat_id, chain_id)
     elif check_if_vault(address):
         simulation.address_type = "vault"
-        get_all_vault_strats(address, helper_address, simulation, chat_id, chain_id, oracle)
+        get_all_vault_strats(address, helper_address, simulation, chat_id, chain_id)
     else:
         simulation.address_type = "strategy"
-        single_address(address, simulation, chat_id, chain_id, oracle)
+        single_address(address, simulation, chat_id, chain_id)
     print("Forked at block #",chain.height)
 
 
-def single_address(strategy_address, simulation, chat_id, chain_id, oracle):
-    simulation_iterator([strategy_address], simulation, chat_id, chain_id, oracle)
+def single_address(strategy_address, simulation, chat_id, chain_id):
+    simulation_iterator([strategy_address], simulation, chat_id, chain_id)
 
-def get_all_vault_strats(vault_address, helper_address, simulation, chat_id, chain_id, oracle):
+def get_all_vault_strats(vault_address, helper_address, simulation, chat_id, chain_id):
     print("All strategies in vault: "+vault_address)
     strategies_helper = interface.IStrategiesHelper(helper_address)
     strategies_addresses = strategies_helper.assetStrategiesAddresses(vault_address)
-    simulation_iterator(strategies_addresses, simulation, chat_id, chain_id, oracle)
+    simulation_iterator(strategies_addresses, simulation, chat_id, chain_id)
 
-def get_all_addresses(helper_address, simulation, chat_id, chain_id, oracle):
+def get_all_addresses(helper_address, simulation, chat_id, chain_id):
     strategies_helper = interface.IStrategiesHelper(helper_address)
     strategies_addresses = strategies_helper.assetsStrategiesAddresses()
-    simulation_iterator(strategies_addresses, simulation, chat_id, chain_id, oracle)
+    simulation_iterator(strategies_addresses, simulation, chat_id, chain_id)
 
-def simulation_iterator(strategies_addresses, simulation, chat_id, chain_id, oracle):
+def simulation_iterator(strategies_addresses, simulation, chat_id, chain_id):
     run_report = []
     msg = str("Mainnet forked at block #: "+ "{:,}".format(chain.height)+ "\n\n"+str(len(strategies_addresses)))+" total strategies found.\n\nPlease wait while harvest(s) are queued ....."
     
