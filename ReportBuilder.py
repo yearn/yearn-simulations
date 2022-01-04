@@ -126,7 +126,7 @@ def report_builder(data):
         r.value = "{:,.5f}".format(data.post.price_per_share / d)
         i, r = appender(i, r)
         r.name = "PPS percent change"
-        r.value = "{:,.5f}".format(data.post.pps_percent_change)
+        r.value = "{:.4%}".format(data.post.pps_percent_change)
         i, r = appender(i, r)
     r.name = "----- DEFAULT ALERTS -------"
     r.value = ""
