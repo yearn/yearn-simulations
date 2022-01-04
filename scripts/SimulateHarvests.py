@@ -58,7 +58,7 @@ def get_all_vault_strats(vault_address, helper_address, simulation, chat_id, cha
     strategies_addresses = strategies_helper.assetStrategiesAddresses(vault_address)
     simulation_iterator(strategies_addresses, simulation, chat_id, chain_id, oracle)
 
-def get_all_addresses(helper_address, simulation, chat_id, chain_id):
+def get_all_addresses(helper_address, simulation, chat_id, chain_id, oracle):
     strategies_helper = interface.IStrategiesHelper(helper_address)
     strategies_addresses = strategies_helper.assetsStrategiesAddresses()
     simulation_iterator(strategies_addresses, simulation, chat_id, chain_id, oracle)
@@ -121,6 +121,8 @@ def simulation_iterator(strategies_addresses, simulation, chat_id, chain_id, ora
 def pre_harvest(data):
     # Set basic strat/vault/token data values
     strategy_address = data.strategy_address
+    addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
+    data.oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
     data.hasHealthChecks = False
     strategy = interface.IStrategy32(strategy_address)
     strat_version = int(re.sub("[^0-9]", "", strategy.apiVersion()))
@@ -152,7 +154,7 @@ def pre_harvest(data):
     data.token_decimals = data.token.decimals()
     data.token_symbol = data.token.symbol()
     try:
-        data.token_price = oracle.getPriceUsdcRecommended(data.token_address) / 10**6
+        data.token_price = data.oracle.getPriceUsdcRecommended(data.token_address) / 10**6
     except:
         print("cannot find token price", data.token_address, data.token_symbol)
         data.token_price = 0
