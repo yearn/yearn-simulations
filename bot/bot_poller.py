@@ -30,7 +30,14 @@ dispatcher = updater.dispatcher
 
 
 def start(update, context):
-    context.bot.send_message(chat_id=telegram_chat_id, text="I'm a bot, please talk to me!")
+    # context.bot.send_message(chat_id=telegram_chat_id, text="I'm a bot, please talk to me!")
+    msg = 'Please send a command in the following format, replacing the address with a Yearn vault or strategy.'
+    update.message.reply_text(msg)
+    msg = f"/eth 0x7Ed0d52C5944C7BF92feDC87FEC49D474ee133ce"
+    update.message.reply_text(msg, parse_mode="markdown")
+
+def ftm(update: Update, context: CallbackContext):
+    sim(update, context, 250, web3)
 
 @run_async
 def do_exec(address, chat_id, chain_id):
