@@ -30,7 +30,6 @@ def main():
     bot = telebot.TeleBot(bot_key)
     
     voter = interface.IVoter("0xF147b8125d2ef93FB6965Db97D6746952a133934")
-    voter = interface.IVoter("0x989AEb4d175e16225E39E87d0D97A3360524AD80")
     gauge_controller = interface.IGaugeController("0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB")
     addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
@@ -73,7 +72,6 @@ def main():
                 token = interface.IERC20(r)
                 total_tokens = bribev2.reward_per_token(g, r) / 10**token.decimals()
                 total_tokens = total_tokens * gauge_controller.points_weight(g, period).dict()["slope"] / 1e18
-                print(bribev2.claimable(voter, g, r))
                 claimable = bribev2.claimable(voter, g, r) / 10**token.decimals()
                 claimable_usd_str = ""
                 total_tokens_price = ""
@@ -113,4 +111,3 @@ def lock_times():
     formated_days = "{:.0f}".format(round(days_since_last_lock,0))
     print("day since last lock",formated_days)
     return formated_days
-    
