@@ -18,15 +18,15 @@ from brownie import (
 import time, re, json
 
 load_dotenv()
-SSC_BOT_KEY = os.getenv("SSC_BOT_KEY")
+SSB_BOT_KEY = os.getenv("TELEGRAM_YFI_DEV_BOT")
 USE_DYNAMIC_LOOKUP = os.getenv("USE_DYNAMIC_LOOKUP")
 ENV = os.getenv("ENV")
 
 def main():
-    bot = telebot.TeleBot(SSC_BOT_KEY)
+    bot = telebot.TeleBot(SSB_BOT_KEY)
     report_string = []
     test_group = os.getenv("TEST_GROUP")
-    prod_group = os.getenv("PROD_GROUP")
+    prod_group = os.getenv("YFI_BALANCER_COMMITTEE")
     if ENV == "PROD":
         chat_id = prod_group
     else:
