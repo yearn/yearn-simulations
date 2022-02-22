@@ -18,7 +18,6 @@ from brownie import (
 import time, re, json
 
 def main():
-    spell = "0x090185f2135308BaD17527004364eBcC2D37e5F6"
     bribev2 = Contract("0x7893bbb46613d7a4FbcC31Dab4C9b823FfeE1026")
     load_dotenv()
     env = os.environ.get("ENV") # Set environment
@@ -39,7 +38,6 @@ def main():
     print("Found "+str(num_gauges)+" gauges...")
     last_vote_timestamp = 0
     days_since_last_vote = 100
-    can_vote = True
     next_vote_available = 0
     
     for i in range(0, num_gauges):
@@ -62,13 +60,10 @@ def main():
             msg = msg + "[" + lp_name + "](https://etherscan.io/address/"+g+")\n"
             period = round(round(time.time()) / WEEK) * WEEK - WEEK
             for i,  r in enumerate(rewards):
-                # if r == spell:
-                #     url = "https://api.coingecko.com/api/v3/simple/price?ids=spell-token&vs_currencies=usd"
-                #     spell_price = requests.get(url).json()["spell-token"]["usd"]
-                #     price = spell_price
-                # else:
-                #     price = oracle.getPriceUsdcRecommended(r) / 10**6
-                price = get_price(r)
+                try:
+                    price = get_price(r)
+                except:
+                    continue
                 token = Contract(r)
                 total_tokens = bribev2.reward_per_token(g, r) / 10**token.decimals()
                 total_tokens = total_tokens * gauge_controller.points_weight(g, period).dict()["slope"] / 1e18
@@ -79,11 +74,11 @@ def main():
                     total_tokens_price = "? Cannot find price"
                 else:
                     total_tokens_price = "${:,.2f}".format(total_tokens * price)
-                if claimable > 0 and price == 0:
-                    claimable_usd_str = "⚠"
-                elif claimable > 0 and price > 0:
-                    claimable_usd = price * claimable
-                    claimable_usd_str = "${:,.2f}".format(claimable_usd)
+
+                if claimable == 0 or price * claimable < 100 or total_tokens * price < 100_000:
+                    continue
+                claimable_usd = price * claimable
+                claimable_usd_str = "${:,.2f}".format(claimable_usd)
                 if i > 0:
                     msg = msg + indent + "---\n"
                 msg = msg + indent + token.name() + " " + str(round(total_tokens,2)) + " " + token.symbol() + " " + total_tokens_price + "\n"
