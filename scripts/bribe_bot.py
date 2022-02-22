@@ -2,11 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from datetime import datetime
-# from ypricemagic.magic import get_price
-from y import magic
-from y.contracts import logger
-magic.yearn.logger.addHandler(magic.yearn.logging.StreamHandler())
-magic.yearn.logger.setLevel(magic.yearn.logging.DEBUG)
+from ypricemagic.magic import get_price
 import telebot, requests
 from brownie import (
     Contract,
@@ -72,7 +68,7 @@ def main():
                 #     price = spell_price
                 # else:
                 #     price = oracle.getPriceUsdcRecommended(r) / 10**6
-                price = magic.get_price(r)
+                price = get_price(r)
                 token = Contract(r)
                 total_tokens = bribev2.reward_per_token(g, r) / 10**token.decimals()
                 total_tokens = total_tokens * gauge_controller.points_weight(g, period).dict()["slope"] / 1e18
