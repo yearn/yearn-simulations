@@ -89,8 +89,9 @@ def main():
                 msg = msg + indent + "**Claimable by yearn: " + str(round(claimable,2)) + " " + token.symbol() + " " + claimable_usd_str + "**\n"
             if env == "PROD" and should_print:
                 bot.send_message(chat_id, msg, parse_mode="markdown", disable_web_page_preview = True)
+            if should_print:
+                print(msg)
             should_print = False
-            print(msg)
     message = "Last lock: " + formated_days + " days ago\n\n"
     message = message + "Days since last vote: " + str(days_since_last_vote) + "\n\n"
     message = message + "Next available vote date: " + datetime.utcfromtimestamp(next_vote_available).strftime('%Y-%m-%d %H:%M:%S')
