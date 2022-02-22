@@ -39,6 +39,7 @@ def main():
     last_vote_timestamp = 0
     days_since_last_vote = 100
     next_vote_available = 0
+    should_print = False
     
     for i in range(0, num_gauges):
         msg = ""
@@ -60,7 +61,6 @@ def main():
             msg = msg + "[" + lp_name + "](https://etherscan.io/address/"+g+")\n"
             period = round(round(time.time()) / WEEK) * WEEK - WEEK
             for i,  r in enumerate(rewards):
-                should_print = False
                 try:
                     price = get_price(r)
                 except:
@@ -89,6 +89,7 @@ def main():
                 msg = msg + indent + "**Claimable by yearn: " + str(round(claimable,2)) + " " + token.symbol() + " " + claimable_usd_str + "**\n"
             if env == "PROD" and should_print:
                 bot.send_message(chat_id, msg, parse_mode="markdown", disable_web_page_preview = True)
+            should_print = False
             print(msg)
     message = "Last lock: " + formated_days + " days ago\n\n"
     message = message + "Days since last vote: " + str(days_since_last_vote) + "\n\n"
