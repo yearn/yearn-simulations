@@ -60,9 +60,11 @@ def main():
             msg = msg + "[" + lp_name + "](https://etherscan.io/address/"+g+")\n"
             period = round(round(time.time()) / WEEK) * WEEK - WEEK
             for i,  r in enumerate(rewards):
+                should_print = False
                 try:
                     price = get_price(r)
                 except:
+                    print("Error finding price for", r)
                     continue
                 token = Contract(r)
                 total_tokens = bribev2.reward_per_token(g, r) / 10**token.decimals()
@@ -77,13 +79,14 @@ def main():
 
                 if claimable == 0 or price * claimable < 100 or total_tokens * price < 100_000:
                     continue
+                should_print = True
                 claimable_usd = price * claimable
                 claimable_usd_str = "${:,.2f}".format(claimable_usd)
                 if i > 0:
                     msg = msg + indent + "---\n"
                 msg = msg + indent + token.name() + " " + str(round(total_tokens,2)) + " " + token.symbol() + " " + total_tokens_price + "\n"
                 msg = msg + indent + "**Claimable by yearn: " + str(round(claimable,2)) + " " + token.symbol() + " " + claimable_usd_str + "**\n"
-            if env == "PROD":
+            if env == "PROD" and should_print:
                 bot.send_message(chat_id, msg, parse_mode="markdown", disable_web_page_preview = True)
             print(msg)
     message = "Last lock: " + formated_days + " days ago\n\n"
