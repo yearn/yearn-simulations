@@ -1,0 +1,1 @@
+{"duration": 0.011590957641601562, "input_args": {"address": "'0x4E15361FD6b4BB609Fa63C81A2be19d873717870'", "methods": "['isCToken()(bool)', 'comptroller()(address)', 'underlying()(address)']", "func": "<built-in function all>"}}

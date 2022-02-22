@@ -1,0 +1,1 @@
+{"duration": 0.011315107345581055, "input_args": {"address": "'0x2ba592F78dB6436527729929AAf6c908497cB200'", "methods": "['pricePerShare()(uint)', 'getPricePerShare()(uint)', 'getPricePerFullShare()(uint)', 'getSharesToUnderlying()(uint)']", "func": "<built-in function any>"}}

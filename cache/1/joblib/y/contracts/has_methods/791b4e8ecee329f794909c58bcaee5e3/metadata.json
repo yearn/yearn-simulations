@@ -1,0 +1,1 @@
+{"duration": 0.010248899459838867, "input_args": {"address": "'0x89Ab32156e46F46D02ade3FEcbe5Fc4243B9AAeD'", "methods": "['lpStaker()(address)', 'rewardTokens(uint)(address)', 'rewardPerToken(address)(uint)', 'minter()(address)']", "func": "<built-in function all>"}}

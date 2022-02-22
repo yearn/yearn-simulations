@@ -1,8 +1,8 @@
 import os
 
 from dotenv import load_dotenv
-import pandas as pd
 from datetime import datetime
+from ypricemagic.magic import get_price
 import telebot, requests
 from brownie import (
     Contract,
@@ -18,9 +18,8 @@ from brownie import (
 import time, re, json
 
 def main():
-    abra_multisig = accounts.at("0xfddfE525054efaAD204600d00CA86ADb1Cc2ea8a", force=True)
     spell = "0x090185f2135308BaD17527004364eBcC2D37e5F6"
-    bribev2 = interface.IBribeV2("0x7893bbb46613d7a4FbcC31Dab4C9b823FfeE1026")
+    bribev2 = Contract("0x7893bbb46613d7a4FbcC31Dab4C9b823FfeE1026")
     load_dotenv()
     env = os.environ.get("ENV") # Set environment
     test_group = os.getenv("TELEGRAM_CHAT_ID_TEST_GROUP")
@@ -29,10 +28,10 @@ def main():
     bot_key = os.environ.get("TELEGRAM_YFI_DEV_BOT")
     bot = telebot.TeleBot(bot_key)
     
-    voter = interface.IVoter("0xF147b8125d2ef93FB6965Db97D6746952a133934")
-    gauge_controller = interface.IGaugeController("0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB")
-    addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
-    oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
+    voter = Contract("0xF147b8125d2ef93FB6965Db97D6746952a133934")
+    gauge_controller = Contract("0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB")
+    addresses_provider = Contract("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
+    oracle = Contract(addresses_provider.addressById("ORACLE"))
     indent = "    "
     WEEK = 86400 * 7
     num_gauges = gauge_controller.n_gauges()
@@ -54,22 +53,23 @@ def main():
             days_since_last_vote = days_diff
             next_vote_available = last_vote_timestamp + (10 * 86400)
         rewards = bribev2.rewards_per_gauge(g)
-        gauge = interface.Gauge(g)
+        gauge = Contract(g)
         try:
-            lp_name = interface.IERC20(gauge.lp_token()).name()
+            lp_name = Contract(gauge.lp_token()).name()
         except:
             lp_name = "Cannot find name"
         if len(rewards) > 0:
             msg = msg + "[" + lp_name + "](https://etherscan.io/address/"+g+")\n"
             period = round(round(time.time()) / WEEK) * WEEK - WEEK
             for i,  r in enumerate(rewards):
-                if r == spell:
-                    url = "https://api.coingecko.com/api/v3/simple/price?ids=spell-token&vs_currencies=usd"
-                    spell_price = requests.get(url).json()["spell-token"]["usd"]
-                    price = spell_price
-                else:
-                    price = oracle.getPriceUsdcRecommended(r) / 10**6
-                token = interface.IERC20(r)
+                # if r == spell:
+                #     url = "https://api.coingecko.com/api/v3/simple/price?ids=spell-token&vs_currencies=usd"
+                #     spell_price = requests.get(url).json()["spell-token"]["usd"]
+                #     price = spell_price
+                # else:
+                #     price = oracle.getPriceUsdcRecommended(r) / 10**6
+                price = get_price(r)
+                token = Contract(r)
                 total_tokens = bribev2.reward_per_token(g, r) / 10**token.decimals()
                 total_tokens = total_tokens * gauge_controller.points_weight(g, period).dict()["slope"] / 1e18
                 claimable = bribev2.claimable(voter, g, r) / 10**token.decimals()

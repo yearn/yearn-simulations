@@ -1,0 +1,1 @@
+{"duration": 0.010474920272827148, "input_args": {"address": "'0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'", "methods": "['debtShareToVal(uint)(uint)', 'debtValToShare(uint)(uint)']", "func": "<built-in function all>"}}

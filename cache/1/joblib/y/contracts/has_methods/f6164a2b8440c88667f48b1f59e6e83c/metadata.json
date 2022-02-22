@@ -1,0 +1,1 @@
+{"duration": 0.010164976119995117, "input_args": {"address": "'0x2ba592F78dB6436527729929AAf6c908497cB200'", "methods": "{'getTotalDenormalizedWeight()(uint)', 'getCurrentTokens()(address[])', 'totalSupply()(uint)'}", "func": "<built-in function all>"}}

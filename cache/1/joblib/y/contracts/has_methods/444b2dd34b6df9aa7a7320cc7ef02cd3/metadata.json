@@ -1,0 +1,1 @@
+{"duration": 0.011250972747802734, "input_args": {"address": "'0x9D79d5B61De59D882ce90125b18F74af650acB93'", "methods": "['getPoolId()(bytes32)', 'getPausedState()((bool,uint,uint))', 'getSwapFeePercentage()(uint)']", "func": "<built-in function all>"}}

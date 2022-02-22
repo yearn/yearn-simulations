@@ -1,0 +1,1 @@
+{"duration": 0.012219905853271484, "input_args": {"address": "'0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0'", "methods": "['getPrice()((uint,uint))', 'mAsset()(address)']", "func": "<built-in function all>"}}

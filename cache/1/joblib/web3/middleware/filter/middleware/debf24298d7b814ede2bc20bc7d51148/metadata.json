@@ -1,0 +1,1 @@
+{"duration": 0.003976106643676758, "input_args": {"method": "'eth_getLogs'", "params": "({'fromBlock': '0xaaf48d', 'toBlock': '0xab1b9c', 'address': ['0x0000000022D53366457F9d5E68Ec105046FC4383']},)"}}

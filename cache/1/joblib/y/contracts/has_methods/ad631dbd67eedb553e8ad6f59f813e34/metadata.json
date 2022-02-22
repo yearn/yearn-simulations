@@ -1,0 +1,1 @@
+{"duration": 0.012349843978881836, "input_args": {"address": "'0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'", "methods": "{'getModules()(address[])', 'getComponents()(address[])', 'getPositions()(address[])'}", "func": "<built-in function all>"}}

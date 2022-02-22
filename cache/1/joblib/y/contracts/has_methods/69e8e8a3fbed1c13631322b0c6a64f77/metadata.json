@@ -1,0 +1,1 @@
+{"duration": 0.014148235321044922, "input_args": {"address": "'0x89Ab32156e46F46D02ade3FEcbe5Fc4243B9AAeD'", "methods": "['exchangeRate()(uint)', 'underlying()(address)']", "func": "<built-in function all>"}}

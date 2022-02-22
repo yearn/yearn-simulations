@@ -1,0 +1,1 @@
+{"duration": 0.0044460296630859375, "input_args": {"method": "'eth_call'", "params": "({'to': '0xADE00C28244d5CE17D72E40330B1c318cD12B7c3', 'data': '0x95d89b41'}, 'latest')"}}
