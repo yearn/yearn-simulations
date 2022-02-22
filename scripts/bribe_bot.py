@@ -77,7 +77,8 @@ def main():
                 else:
                     total_tokens_price = "${:,.2f}".format(total_tokens * price)
 
-                if claimable == 0 or price * claimable < 100 or total_tokens * price < 100_000:
+                if (claimable == 0 or price * claimable < 100) and total_tokens * price < 50_000:
+                    print(claimable, price*claimable, total_tokens * price)
                     continue
                 should_print = True
                 claimable_usd = price * claimable
