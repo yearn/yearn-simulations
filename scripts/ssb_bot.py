@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-import pandas as pd
+import pandas as pd, requests
 import datetime
 import telebot
 from brownie import (
@@ -22,7 +22,16 @@ SSB_BOT_KEY = os.getenv("TELEGRAM_YFI_DEV_BOT")
 USE_DYNAMIC_LOOKUP = os.getenv("USE_DYNAMIC_LOOKUP")
 ENV = os.getenv("ENV")
 
+ADDRESSES = {
+    1: {
+        "ADDRESS_PROVIDER": "0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93",
+    },
+    250: {
+        "ADDRESS_PROVIDER": "0xac5A9E4135A3A26497F3890bFb602b06Ee592B61"
+    }
+}
 def main():
+
     bot = telebot.TeleBot(SSB_BOT_KEY)
     report_string = []
     test_group = os.getenv("TEST_GROUP")
@@ -33,7 +42,7 @@ def main():
         chat_id = test_group
     strategies = lookup_strategies()
     print(strategies)
-    addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
+    addresses_provider = interface.IAddressProvider(ADDRESSES[chain.id]["ADDRESS_PROVIDER"])
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
 
     count = 0
@@ -41,7 +50,7 @@ def main():
     needs_harvest = []
     for i, s in enumerate(strategies):
         string = ""
-        strat = interface.IStrategy042(s)
+        strat = Contract(s)
         vault = assess_vault_version(strat.vault())
         token = interface.IERC20(vault.token())
         token_price = get_price(oracle, token.address)
@@ -51,13 +60,18 @@ def main():
         last_report = params.dict()["lastReport"]
         seconds_since_report = int(time.time() - last_report)
         since_last = "%dd, %dhr, %dm" % dhms_from_seconds(seconds_since_report)
-        hours_since_last = seconds_since_report/60/60
 
         target_ratio = params.dict()["debtRatio"]
         before_debt = params.dict()["totalDebt"]
         before_gain = params.dict()["totalGain"]
         before_loss = params.dict()["totalLoss"]
-        
+
+        b_vault = Contract(strat.balancerVault())
+        amount_in_pool = b_vault.getPoolTokenInfo(strat.balancerPoolId(), strat.want())[0]
+        if amount_in_pool * .95 < vault.debtOutstanding(s):
+            m = f'\n\n🚨 Needs attention! Harvest fails due to debtoutstanding > pooled tokens {strat.address} {strat.name()}.'
+            report_string.append(m)
+            continue
         assets = vault.totalAssets()
         actual_ratio = before_debt/(assets+1) 
 
@@ -69,6 +83,16 @@ def main():
         try:
             print("Harvesting strategy: " + s)
             try:
+                strat.setParams(
+                    10_000,
+                    10_000,
+                    strat.maxSingleDeposit() * 10,
+                    0,
+                    {'from': gov}
+                )
+            except:
+                print("Failed setting parameters")
+            try:
                 strat.doHealthCheck()
                 strat.setDoHealthCheck(False, {'from': gov})
                 tx = strat.harvest({'from': gov})
@@ -79,7 +103,6 @@ def main():
             print(string)
             report_string.append(string)
             continue
-        
         params = vault.strategies(strat)
         profit = params.dict()["totalGain"] - before_gain
         loss = params.dict()["totalLoss"] - before_loss
@@ -142,7 +165,10 @@ def lookup_strategies():
     if USE_DYNAMIC_LOOKUP == "False":
         f = open("ssb_list.json", "r", errors="ignore")
         data = json.load(f)
-        strategies = data['strategies']
+        if chain.id == 1:
+            strategies = data['mainnet_strategies']
+        elif chain.id == 250:
+            strategies = data['ftm_strategies']
     else:
         # Fetch all v2 strategies and query by name
         addresses_provider = Contract("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
@@ -150,7 +176,7 @@ def lookup_strategies():
         v2_strategies = strategies_helper.assetsStrategiesAddresses()
         strategies = []
         for s in v2_strategies:
-            strat = interface.IStrategy32(s)
+            strat = Contract(s)
             name = strat.name().lower()
             style1 = re.search("SingleSidedBalancer", name)
             if style1:
@@ -160,7 +186,6 @@ def lookup_strategies():
                     print("Found:",strat.address, vault.name(), strat.name())
                 else:
                     print("Skipping...",strat.address, vault.name(), strat.name())
-
     return strategies
 
 def assess_vault_version(vault):
