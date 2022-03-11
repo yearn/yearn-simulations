@@ -22,12 +22,14 @@ SSB_BOT_KEY = os.getenv("TELEGRAM_YFI_DEV_BOT")
 USE_DYNAMIC_LOOKUP = os.getenv("USE_DYNAMIC_LOOKUP")
 ENV = os.getenv("ENV")
 
-ADDRESSES = {
+VALUES = {
     1: {
         "ADDRESS_PROVIDER": "0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93",
+        "EMOJI": "🇪🇹"
     },
     250: {
-        "ADDRESS_PROVIDER": "0xac5A9E4135A3A26497F3890bFb602b06Ee592B61"
+        "ADDRESS_PROVIDER": "0xac5A9E4135A3A26497F3890bFb602b06Ee592B61",
+        "EMOJI": "👻"
     }
 }
 def main():
@@ -42,7 +44,7 @@ def main():
         chat_id = test_group
     strategies = lookup_strategies()
     print(strategies)
-    addresses_provider = interface.IAddressProvider(ADDRESSES[chain.id]["ADDRESS_PROVIDER"])
+    addresses_provider = interface.IAddressProvider(VALUES[chain.id]["ADDRESS_PROVIDER"])
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
 
     count = 0
@@ -152,13 +154,14 @@ def main():
             messages.append("")
         messages[idx] = messages[idx] + report + "\n"
     
+    chain_indicator = f'{VALUES[chain.id]["EMOJI"]} Chain ID: {chain.id} \n'
     for i,m in enumerate(messages):
         page = "Page " + str(i+1) + "/" + str(len(messages)) + "\n"
         m = f"```{m}\n```"
         if i == 0:
-            m = str(count) + " total active strategies found.\n" + m
+            m = chain_indicator + str(count) + " total active strategies found.\n" + m
         else:
-            m = page + m
+            m = chain_indicator + page + m
         bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
 
 def lookup_strategies():
