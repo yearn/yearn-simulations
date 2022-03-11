@@ -22,14 +22,20 @@ SSB_BOT_KEY = os.getenv("TELEGRAM_YFI_DEV_BOT")
 USE_DYNAMIC_LOOKUP = os.getenv("USE_DYNAMIC_LOOKUP")
 ENV = os.getenv("ENV")
 
-VALUES = {
+CHAIN_VALUES = {
     1: {
+        "NETWORK_NAME": "Ethereum Mainnet",
+        "NETWORK_SYMBOL": "FTM",
         "ADDRESS_PROVIDER": "0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93",
-        "EMOJI": "🇪🇹"
+        "EMOJI": "🇪🇹",
+        "PROFIT_TARGET_USD": 65_000
     },
     250: {
+        "NETWORK_NAME": "Fantom",
+        "NETWORK_SYMBOL": "FTM",
         "ADDRESS_PROVIDER": "0xac5A9E4135A3A26497F3890bFb602b06Ee592B61",
-        "EMOJI": "👻"
+        "EMOJI": "👻",
+        "PROFIT_TARGET_USD": 5_000
     }
 }
 def main():
@@ -44,7 +50,7 @@ def main():
         chat_id = test_group
     strategies = lookup_strategies()
     print(strategies)
-    addresses_provider = interface.IAddressProvider(VALUES[chain.id]["ADDRESS_PROVIDER"])
+    addresses_provider = interface.IAddressProvider(CHAIN_VALUES[chain.id]["ADDRESS_PROVIDER"])
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
 
     count = 0
@@ -109,6 +115,7 @@ def main():
         profit = params.dict()["totalGain"] - before_gain
         loss = params.dict()["totalLoss"] - before_loss
         net_profit = profit - loss
+        before_debt_usd = token_price * before_debt / 10**token.decimals()
         profit_usd = token_price * net_profit / 10**token.decimals()
         debt_delta = params.dict()["totalDebt"] - before_debt
         debt_delta_usd = token_price * debt_delta / 10**token.decimals()
@@ -124,7 +131,7 @@ def main():
         harvest_indicator = ""
         tend_indicator = ""
         # if hours_since_last > 200 or profit_usd > 50_000:
-        if profit_usd > 65_000:
+        if profit_usd > CHAIN_VALUES[chain.id]["PROFIT_TARGET_USD"]:
             harvest_indicator = "\U0001F468" + "\u200D" + "\U0001F33E "
             needs_harvest.append(strat)
         if usd_tendable > 0:
@@ -138,7 +145,7 @@ def main():
         df["Time Since Harvest: "] =      since_last
         df["Profit on Harvest USD"] =   "${:,.2f}".format(profit_usd)
         df["Ratio (Target | Actual):"] = "{:.2%}".format(target_ratio/10000) + ' | ' + "{:.2%}".format(actual_ratio)
-        df["Debt Delta:"] =             "${:,.2f}".format(debt_delta_usd)
+        df["Debt (Delta | Total):"] =             "${:,.2f}".format(debt_delta_usd) + ' | ' + "${:,.2f}".format(before_debt_usd)
         df["Pre-fee APR:"] =              "{:.2%}".format(over_year)
         if usd_tendable > 0:
             df["Tendable Amount in USD:"] = "{:,.2f}".format(usd_tendable)
@@ -154,7 +161,7 @@ def main():
             messages.append("")
         messages[idx] = messages[idx] + report + "\n"
     
-    chain_indicator = f'{VALUES[chain.id]["EMOJI"]} Chain ID: {chain.id} \n'
+    chain_indicator = f'{CHAIN_VALUES[chain.id]["EMOJI"]} Chain ID: {chain.id} \n'
     for i,m in enumerate(messages):
         page = "Page " + str(i+1) + "/" + str(len(messages)) + "\n"
         m = f"```{m}\n```"
