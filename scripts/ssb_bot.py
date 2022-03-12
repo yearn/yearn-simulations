@@ -25,7 +25,7 @@ ENV = os.getenv("ENV")
 CHAIN_VALUES = {
     1: {
         "NETWORK_NAME": "Ethereum Mainnet",
-        "NETWORK_SYMBOL": "FTM",
+        "NETWORK_SYMBOL": "ETH",
         "ADDRESS_PROVIDER": "0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93",
         "EMOJI": "🇪🇹",
         "PROFIT_TARGET_USD": 65_000

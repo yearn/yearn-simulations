@@ -11,6 +11,27 @@ from apr import report_apr, calc_apr
 load_dotenv()
 env = os.environ.get("ENVIRONMENT") # Set environment
 
+CHAIN_VALUES = {
+    1: {
+        "NETWORK_NAME": "Ethereum Mainnet",
+        "NETWORK_SYMBOL": "ETH",
+        "ADDRESS_PROVIDER": "0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93",
+        "EMOJI": "🇪🇹",
+        "GOVERNANCE": web3.ens.resolve("ychad.eth"),
+        "TREASURY": web3.ens.resolve("treasury.ychad.eth"),
+        "HELPER": "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a",
+    },
+    250: {
+        "NETWORK_NAME": "Fantom",
+        "NETWORK_SYMBOL": "FTM",
+        "ADDRESS_PROVIDER": "0xac5A9E4135A3A26497F3890bFb602b06Ee592B61",
+        "EMOJI": "👻",
+        "GOVERNANCE": "0xC0E2830724C946a6748dDFE09753613cd38f6767",
+        "TREASURY": "0x89716ad7edc3be3b35695789c475f3e7a3deb12a",
+        "HELPER": "0xE55Dd55b3355c261A048B3f310706C7478657d74",
+    }
+}
+
 def main(chat_id, address, chain_id):
     chain.snapshot()
     load_dotenv()
@@ -25,16 +46,11 @@ def main(chat_id, address, chain_id):
     simulation.apr.post_fee_apr_total = 0
 
     simulation.address = address
-    if chain_id == "1":
-        gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
-        treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
-        helper_address = "0x5b4F3BE554a88Bd0f8d8769B9260be865ba03B4a"
-        addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
-        oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
-    if chain_id == "250":
-        gov = accounts.at("0xC0E2830724C946a6748dDFE09753613cd38f6767", force=True)
-        treasury = accounts.at("0x89716ad7edc3be3b35695789c475f3e7a3deb12a", force=True)
-        helper_address = "0xE55Dd55b3355c261A048B3f310706C7478657d74"
+    gov = CHAIN_VALUES[chain.id]["GOVERNANCE"]
+    treasury = CHAIN_VALUES[chain.id]["TREASURY"]
+    helper_address = CHAIN_VALUES[chain.id]["HELPER"]
+    addresses_provider = interface.IAddressProvider(CHAIN_VALUES[chain.id]["ADDRESS_PROVIDER"])
+    oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
     
 
     if address == "all":
@@ -72,12 +88,8 @@ def simulation_iterator(strategies_addresses, simulation, chat_id, chain_id):
     else:
         print(msg)
     
-    if chain_id == "1":
-        gov = accounts.at(web3.ens.resolve("ychad.eth"), force=True)
-        treasury = accounts.at(web3.ens.resolve("treasury.ychad.eth"), force=True)
-    if chain_id == "250":
-        gov = accounts.at("0xC0E2830724C946a6748dDFE09753613cd38f6767", force=True)
-        treasury = accounts.at("0x89716ad7edc3be3b35695789c475f3e7a3deb12a", force=True)
+    gov = accounts.at(CHAIN_VALUES[chain.id]["GOVERNANCE"], force=True)
+    treasury = accounts.at(CHAIN_VALUES[chain.id]["TREASURY"], force=True)
     
     for strategy_address in strategies_addresses:
         data = dotdict({})
@@ -121,7 +133,7 @@ def simulation_iterator(strategies_addresses, simulation, chat_id, chain_id):
 def pre_harvest(data):
     # Set basic strat/vault/token data values
     strategy_address = data.strategy_address
-    addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
+    addresses_provider = interface.IAddressProvider(CHAIN_VALUES[chain.id]["ADDRESS_PROVIDER"])
     data.oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
     data.hasHealthChecks = False
     strategy = interface.IStrategy32(strategy_address)

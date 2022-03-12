@@ -93,6 +93,7 @@ def main():
         loss = params.dict()["totalLoss"] - before_loss
         net_profit = profit - loss
         profit_usd = token_price * net_profit / 10**token.decimals()
+        before_debt_usd = token_price * before_debt / 10**token.decimals()
         debt_delta = params.dict()["totalDebt"] - before_debt
         debt_delta_usd = token_price * debt_delta / 10**token.decimals()
         percent = 0
@@ -135,7 +136,7 @@ def main():
         df["Time Since Harvest: "] =      since_last
         df["Profit on Harvest USD"] =   "${:,.2f}".format(profit_usd)
         df["Ratio (Target | Actual):"] = "{:.2%}".format(target_ratio/10000) + ' | ' + "{:.2%}".format(actual_ratio)
-        df["Debt Delta:"] =             "${:,.2f}".format(debt_delta_usd)
+        df["Debt (Delta | Total):"] =    "${:,.2f}".format(debt_delta_usd) + ' | ' + "${:,.2f}".format(before_debt_usd)
         df["Pre-fee APR:"] =              "{:.2%}".format(over_year)
         if usd_tendable > 0:
             df["Tendable Amount in USD:"] = "{:,.2f}".format(usd_tendable)
