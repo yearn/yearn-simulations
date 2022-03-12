@@ -104,7 +104,7 @@ def simulation_iterator(strategies_addresses, simulation, chat_id, chain_id):
         
         (data) = pre_harvest(data)
         (data) = pre_harvest_custom(data)
-        data.should_harvest = data.pre.debt is not None and data.pre.debt > 0
+        data.should_harvest = True #data.pre.debt is not None and data.pre.debt > 0
         if data.should_harvest:
             (data) = harvest(data)
             (data) = post_harvest(data)
