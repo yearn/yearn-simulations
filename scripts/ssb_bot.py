@@ -49,7 +49,7 @@ def main():
     else:
         chat_id = test_group
     strategies = lookup_strategies()
-    print(strategies)
+    strategies.append("0x5Df3E97e96FC04ae1F75A9D07A141348E4B07E45") # fBEETS compounder
     addresses_provider = interface.IAddressProvider(CHAIN_VALUES[chain.id]["ADDRESS_PROVIDER"])
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
 
@@ -74,12 +74,15 @@ def main():
         before_gain = params.dict()["totalGain"]
         before_loss = params.dict()["totalLoss"]
 
-        b_vault = Contract(strat.balancerVault())
-        amount_in_pool = b_vault.getPoolTokenInfo(strat.balancerPoolId(), strat.want())[0]
-        if amount_in_pool * .95 < vault.debtOutstanding(s):
-            m = f'\n\n🚨 Needs attention! Harvest fails due to debtoutstanding > pooled tokens {strat.address} {strat.name()}.'
-            report_string.append(m)
-            continue
+        try:
+            b_vault = Contract(strat.balancerVault())
+            amount_in_pool = b_vault.getPoolTokenInfo(strat.balancerPoolId(), strat.want())[0]
+            if amount_in_pool * .95 < vault.debtOutstanding(s):
+                m = f'\n\n🚨 Needs attention! Harvest fails due to debtoutstanding > pooled tokens {strat.address} {strat.name()}.'
+                report_string.append(m)
+                continue
+        except:
+            print("Skipping debtOutstanding check. Strategy is likely not an SSB.")
         assets = vault.totalAssets()
         actual_ratio = before_debt/(assets+1) 
 
@@ -99,7 +102,7 @@ def main():
                     {'from': gov}
                 )
             except:
-                print("Failed setting parameters")
+                print("Failed setting parameters. Strategy is likely not an SSB.")
             try:
                 strat.doHealthCheck()
                 strat.setDoHealthCheck(False, {'from': gov})

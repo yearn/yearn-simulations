@@ -171,34 +171,34 @@ def pre_harvest(data):
         print("cannot find token price", data.token_address, data.token_symbol)
         data.token_price = 0
     dust = 10**(data.token_decimals / 2)
-    if strategy.isActive() and strategy.estimatedTotalAssets() > dust:
-        data.strategy_name = strategy.name()
-        data.vault_name = vault.name()
-        print(data.strategy_name + " - " + strategy_address)
-        data.strategy_api_version = strategy.apiVersion()
-        data.strategist = strategy.strategist()
+    # if strategy.isActive() and strategy.estimatedTotalAssets() > dust:
+    data.strategy_name = strategy.name()
+    data.vault_name = vault.name()
+    print(data.strategy_name + " - " + strategy_address)
+    data.strategy_api_version = strategy.apiVersion()
+    data.strategist = strategy.strategist()
 
-        # State before harvest
-        strategy_params = vault.strategies(strategy)
-        data.pre.debt = strategy_params.dict()["totalDebt"]
-        data.pre.gain = strategy_params.dict()["totalGain"]
-        data.pre.loss = strategy_params.dict()["totalLoss"]
-        data.pre.last_report = strategy_params.dict()["lastReport"]
-        data.pre.desired_ratio = strategy_params.dict()["debtRatio"] / 10000
-        data.pre.desired_ratio_str = "{:.3%}".format(data.pre.desired_ratio)
-        data.pre.debt_outstanding = vault.debtOutstanding(strategy_address)
-        data.pre.price_per_share = vault.pricePerShare()
-        data.pre.total_assets = vault.totalAssets()
-        data.pre.actual_ratio = data.pre.debt / (data.pre.total_assets + 1)
-        data.pre.actual_ratio_str = "{:.3%}".format(data.pre.actual_ratio)
-        data.pre.treasury_fee_balance = vault.balanceOf(data.treasury)
-        data.pre.strategist_fee_balance = vault.balanceOf(strategy)
-        try:
-            data.pre.harvest_trigger = strategy.harvest_trigger(2_000_000 * 300 * 1e9)
-        except:
-            data.pre.harvest_trigger_ready = "Broken"
-        if data.hasHealthChecks:
-            data.strategy.setDoHealthCheck(False,{'from':data.gov})
+    # State before harvest
+    strategy_params = vault.strategies(strategy)
+    data.pre.debt = strategy_params.dict()["totalDebt"]
+    data.pre.gain = strategy_params.dict()["totalGain"]
+    data.pre.loss = strategy_params.dict()["totalLoss"]
+    data.pre.last_report = strategy_params.dict()["lastReport"]
+    data.pre.desired_ratio = strategy_params.dict()["debtRatio"] / 10000
+    data.pre.desired_ratio_str = "{:.3%}".format(data.pre.desired_ratio)
+    data.pre.debt_outstanding = vault.debtOutstanding(strategy_address)
+    data.pre.price_per_share = vault.pricePerShare()
+    data.pre.total_assets = vault.totalAssets()
+    data.pre.actual_ratio = data.pre.debt / (data.pre.total_assets + 1)
+    data.pre.actual_ratio_str = "{:.3%}".format(data.pre.actual_ratio)
+    data.pre.treasury_fee_balance = vault.balanceOf(data.treasury)
+    data.pre.strategist_fee_balance = vault.balanceOf(strategy)
+    try:
+        data.pre.harvest_trigger = strategy.harvest_trigger(2_000_000 * 300 * 1e9)
+    except:
+        data.pre.harvest_trigger_ready = "Broken"
+    if data.hasHealthChecks:
+        data.strategy.setDoHealthCheck(False,{'from':data.gov})
     return data
 
 def pre_harvest_custom(data):
