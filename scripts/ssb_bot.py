@@ -49,7 +49,8 @@ def main():
     else:
         chat_id = test_group
     strategies = lookup_strategies()
-    strategies.append("0x5Df3E97e96FC04ae1F75A9D07A141348E4B07E45") # fBEETS compounder
+    if chain.id == 250:
+        strategies.append("0x5Df3E97e96FC04ae1F75A9D07A141348E4B07E45") # fBEETS compounder
     addresses_provider = interface.IAddressProvider(CHAIN_VALUES[chain.id]["ADDRESS_PROVIDER"])
     oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
 
