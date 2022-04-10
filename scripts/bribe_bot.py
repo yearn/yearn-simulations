@@ -82,11 +82,14 @@ def main():
                     continue
                 should_print = True
                 claimable_usd = price * claimable
+                emoji = ""
+                if claimable_usd > 0:
+                    emoji = "💰 "
                 claimable_usd_str = "${:,.2f}".format(claimable_usd)
                 if i > 0:
                     msg = msg + indent + "---\n"
                 msg = msg + indent + token.name() + " " + str(round(total_tokens,2)) + " " + token.symbol() + " " + total_tokens_price + "\n"
-                msg = msg + indent + "**Claimable by yearn: " + str(round(claimable,2)) + " " + token.symbol() + " " + claimable_usd_str + "**\n"
+                msg = msg + indent + f'{emoji}Claimable by yearn: " + str(round(claimable,2)) + " " + token.symbol() + " " + claimable_usd_str + "**\n'
             if env == "PROD" and should_print:
                 bot.send_message(chat_id, msg, parse_mode="markdown", disable_web_page_preview = True)
             if should_print:
