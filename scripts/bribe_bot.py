@@ -16,6 +16,9 @@ from brownie import (
     ZERO_ADDRESS,
 )
 import time, re, json
+import warnings
+warnings.filterwarnings("ignore", ".*cannot be installed or is not supported by Brownie.*")
+warnings.filterwarnings("ignore", ".*Locally compiled and on-chain bytecode do not match*")
 
 def main():
     bribev2 = Contract("0x7893bbb46613d7a4FbcC31Dab4C9b823FfeE1026")

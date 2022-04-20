@@ -18,7 +18,7 @@ from brownie import (
 import time, re, json
 
 load_dotenv()
-SSC_BOT_KEY = os.getenv("SSC_BOT_KEY")
+SSC_BOT_KEY = os.getenv("WAVEY_ALERTS_BOT_KEY")
 USE_DYNAMIC_LOOKUP = os.getenv("USE_DYNAMIC_LOOKUP")
 ENV = os.getenv("ENV")
 
@@ -33,11 +33,11 @@ def main():
         chat_id = test_group
     sscs = lookup_sscs()
     print(sscs)
-    addresses_provider = interface.IAddressProvider("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
-    oracle = interface.IOracle(addresses_provider.addressById("ORACLE"))
+    addresses_provider = Contract("0x9be19Ee7Bc4099D62737a7255f5c227fBcd6dB93")
+    oracle = Contract(addresses_provider.addressById("ORACLE"))
     
     # Add non-SSCs
-    yvboost_strat = "0x2923a58c1831205C854DBEa001809B194FDb3Fa5"
+    yvboost_strat = Contract("0x9d409a0A012CFbA9B15F6D4B36Ac57A46966Ab9a").withdrawalQueue(0)
     accumulator = "0x0967aFe627C732d152e3dFCAdd6f9DBfecDE18c3"
     sscs.append(yvboost_strat) # YVBOOST
     sscs.append(accumulator) # Accumulator
@@ -45,9 +45,9 @@ def main():
     count = 0
     for i, s in enumerate(sscs):
         string = ""
-        strat = interface.IStrategy042(s)
+        strat = Contract(s)
         vault = assess_vault_version(strat.vault())
-        token = interface.IERC20(vault.token())
+        token = Contract(vault.token())
         token_price = get_price(oracle, token.address)
         usd_tendable = token_price * token.balanceOf(s) / 10**token.decimals()
         gov = accounts.at(vault.governance(), force=True)
@@ -73,7 +73,7 @@ def main():
         try:
             print("Harvesting strategy: " + s)
             if strat.address == accumulator:
-                strat = interface.Accumulator(strat.address)
+                strat = Contract(strat.address)
                 slip = strat.slippageProtectionOut()
                 strat.updateSlippageProtectionOut(100,{"from":gov})
             try:
@@ -114,9 +114,9 @@ def main():
             tend_indicator = "\U0001F33E "
 
         if s == yvboost_strat:
-            strat = interface.IYvBoost(yvboost_strat)
+            strat = Contract(yvboost_strat)
             ms = accounts.at(strat.strategist(), force=True)
-            yvecrv = interface.IERC20(strat.want())
+            yvecrv = Contract(strat.want())
             yvecrv.transfer(ms, 1e18, {"from": ms})
             if strat.getClaimable3Crv() > 0:
                 harvest_indicator = "\U0001F468" + "\u200D" + "\U0001F33E "
@@ -173,13 +173,13 @@ def lookup_sscs():
         v2_strategies = strategies_helper.assetsStrategiesAddresses()
         ssc_strats = []
         for s in v2_strategies:
-            strat = interface.IStrategy32(s)
+            strat = Contract(s)
             name = strat.name().lower()
             style1 = re.search("singlesidedc", name)
             style2 = re.search("ssc", name)
             style3 = re.search("SingleSidedBalancer", name)
             if (style1 or style2) and not style3:
-                vault = interface.IVault032(strat.vault())
+                vault = Contract(strat.vault())
                 if vault.strategies(strat).dict()["debtRatio"] > 0:
                     ssc_strats.append(s)
                     print("Found:",strat.address, vault.name(), strat.name())
@@ -189,10 +189,10 @@ def lookup_sscs():
     return ssc_strats
 
 def assess_vault_version(vault):
-    if int(interface.IVault032(vault).apiVersion().replace(".", "")) > 31:
-        return interface.IVault032(vault)
+    if int(Contract(vault).apiVersion().replace(".", "")) > 31:
+        return Contract(vault)
     else:
-        return interface.IVault031(vault)
+        return Contract(vault)
 
 def get_price(oracle, token):
     return oracle.getPriceUsdcRecommended(token) / 10**6
