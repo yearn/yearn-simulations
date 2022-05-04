@@ -11,7 +11,6 @@ from brownie import (
     rpc,
     web3,
     history,
-    interface,
     Wei,
     ZERO_ADDRESS,
 )
