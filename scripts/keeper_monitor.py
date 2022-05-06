@@ -1,4 +1,4 @@
-import os
+import os, time, re, json, warnings
 from dotenv import load_dotenv
 from datetime import datetime
 import telebot, requests
@@ -12,10 +12,14 @@ from brownie import (
     Wei,
     ZERO_ADDRESS,
 )
-import time, re, json
-import warnings
+
 warnings.filterwarnings("ignore", ".*cannot be installed or is not supported by Brownie.*")
 warnings.filterwarnings("ignore", ".*Locally compiled and on-chain bytecode do not match*")
+
+load_dotenv()
+key = os.getenv("WAVEY_ALERTS_BOT_KEY")
+chat_id = os.environ.get("TELEGRAM_CHAT_ID_KEEPER")
+bot = telebot.TeleBot(key)
 
 CHAIN_VALUES = {
     1: {
@@ -28,6 +32,7 @@ CHAIN_VALUES = {
     250: {
         "NETWORK_NAME": "Fantom",
         "NETWORK_SYMBOL": "FTM",
+        "TIME_SINCE_TXN_THRESHOLD": 60 * 60,
         "EOA": "0x000004e4d96d663C809Cbc8D773a764A89D0b37f",
         "JOB": "0x57419Fb50Fa588Fc165AcC26449B2Bf4C7731458",
         "EMOJI": "👻",
@@ -40,8 +45,8 @@ INFO = {
     "FIRST_RUN": True,
     "UNWORKED": [],
     "LAST_TXN_TIME": 0,
-    "TIME_SINCE_TXN_THRESHOLD": 60 * 60,
     "LAST_UPDATE": 0,
+    "MIN_BALANCE": 200e18,
 }
 
 ERROR_CODES = {
@@ -56,61 +61,92 @@ def check_pre_existing_errors():
     return False
 
 def main():
+    key = os.getenv("WAVEY_ALERTS_BOT_KEY")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID_KEEPER")
+    bot = telebot.TeleBot(key)
+
     job = Contract(CHAIN_VALUES[chain.id]["JOB"])
     eoa = accounts.at(CHAIN_VALUES[chain.id]["EOA"], force=True)
-    all_strats = list(job.strategies())
-    workable_strats = []
-    for s in all_strats:
-        if job.workable(s):
-            workable_strats.append(s)
-    print(workable_strats)
-    INFO["UNWORKED"] = workable_strats
-    last_balance = INFO["BALANCE"]
-    last_txn_time = INFO["LAST_TXN_TIME"]
-    INFO["BALANCE"] = eoa.balance()
-    pre_existing_errors = pre_existing_errors()
+    while True:
+        all_strats = list(job.strategies())
+        workable_strats = []
+        for s in all_strats:
+            if job.workable(s):
+                workable_strats.append(s)
 
-    ### ALERT CONDITIONS
-    # TOO LITTLE BALANCE
-    if eoa.balance() < INFO["MIN_BALANCE"]:
-        if not ERROR_CODES[0]: # Don't re-send if already sent
-            ERROR_CODES[0] = True
-            critical_alert()
-    else:
-        if ERROR_CODES[0]:
+        INFO["UNWORKED"] = workable_strats
+        last_balance = INFO["BALANCE"]
+        last_txn_time = INFO["LAST_TXN_TIME"]
+        INFO["BALANCE"] = eoa.balance()
+        pre_existing_errors = check_pre_existing_errors()
+
+        ### ALERT CONDITIONS
+        # TOO LITTLE BALANCE
+        if eoa.balance() < INFO["MIN_BALANCE"] and not INFO["FIRST_RUN"]:
+            if not ERROR_CODES[0]: # Don't re-send if already sent
+                ERROR_CODES[0] = True
+                critical_alert(0)
+        else:
+            if ERROR_CODES[0] and not INFO["FIRST_RUN"]:
+                # send_healthy(1)
+                pass
+            ERROR_CODES[0] = False
+
+        # NO TXN SENT IN EXPECTED TIMEFRAME
+        if INFO["BALANCE"] != last_balance:
+                INFO["LAST_TXN_TIME"] = chain.time()
+                ERROR_CODES[1] = False
+        elif chain.time() - INFO["LAST_TXN_TIME"] > CHAIN_VALUES[chain.id]["TIME_SINCE_TXN_THRESHOLD"] and not INFO["FIRST_RUN"]:
+            if not ERROR_CODES[1]:
+                ERROR_CODES[1] = True
+                critical_alert(1) # Don't re-send if already sent
+            
+
+        # HEALTH RESTORED
+        if pre_existing_errors == True and not check_pre_existing_errors() and not INFO["FIRST_RUN"]:
             send_healthy()
-        ERROR_CODES[0] = False
+        
+        if INFO["FIRST_RUN"]:
+            INFO["FIRST_RUN"] = False
 
-    # NO TXN SENT IN EXPECTED TIMEFRAME
-    if chain.time() - INFO["LAST_TXN_TIME"] > INFO["TIME_SINCE_TXN_THRESHOLD"]:
-        if not ERROR_CODES[1]:
-            ERROR_CODES[1] = True
-            critical_alert() # Don't re-send if already sent
+        print(INFO)
+        print(ERROR_CODES)
+        info_alert(INFO)
+        time.sleep(60*5)
+
+def send_healthy():
+    m = f'healthy'
+    bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
+
+def info_alert(info):
+    m = 'Info:\n'
+    balance = int(info['BALANCE']/1e18)
+    symbol = CHAIN_VALUES[chain.id]["NETWORK_SYMBOL"]
+    ts = info['LAST_TXN_TIME']
+    time_ago = (chain.time() - ts) / 60
+    last_txn_date = datetime.utcfromtimestamp(ts).strftime("%m/%d/%Y, %H:%M:%S")
+    m += f'\nBalance: {balance} {symbol}'
+    m += f'\nLast txn: {time_ago} minutes ago: {last_txn_date}'
+    unworked = info['UNWORKED']
+    if len(unworked) > 0:
+        m += f'\nUnworked strategies:\n'
+        unworked = info['UNWORKED']
+        for u in unworked:
+            m += f'{u}\n'
+        m = f'info:'
     else:
-        if ERROR_CODES[1]:
-            send_healthy()
-        INFO["LAST_TXN_TIME"] = chain.time()
-        # C
-        ERROR_CODES[1] = False
+        m += f'\nNo unworked strategies ✅\n'
+    bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
 
+def critical_alert(code):
+    max_time_hrs = CHAIN_VALUES[chain.id]["TIME_SINCE_TXN_THRESHOLD"] / 60 / 60
+    m = '🚨\n'
+    if code == 0:
+        min_balance = CHAIN_VALUES[chain.id]["MIN_BALANCE"] / 1e18
+        symbol = CHAIN_VALUES[chain.id]["NETWORK_SYMBOL"]
+        m += f'Keeper balance below {str(min_balance)} {symbol} threshold\n'
+    if code == 1:
+        m = f'Exceeded {max_time_hrs} hrs threshold since last harvest.\n'
+    bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
 
-    # HEALTH RESTORED
-    if chain.time() - INFO["LAST_UPDATE"] > 60 * 15:
-        INFO["LAST_UPDATE"] = chain.time()
-        if INFO["LAST_UPDATE"] > info_alert():
-
-
-def info_alert():
-    pass
-
-def critical_alert():
-    pass
-
-def has_enough_eth():
-    eoa = accounts.at("0x000004e4d96d663C809Cbc8D773a764A89D0b37f", force=True)
-    if eoa.balance < 100e18:
-        m = f'Not enough funds'
-        # send_alert(m)
-
-# def send_alert():
 
