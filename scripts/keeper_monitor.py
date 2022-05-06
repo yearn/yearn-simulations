@@ -108,10 +108,12 @@ def main():
         
         if INFO["FIRST_RUN"]:
             INFO["FIRST_RUN"] = False
+        else:
+            info_alert(INFO)
 
         print(INFO)
         print(ERROR_CODES)
-        info_alert(INFO)
+        
         time.sleep(60*5)
 
 def send_healthy():
@@ -123,7 +125,7 @@ def info_alert(info):
     balance = int(info['BALANCE']/1e18)
     symbol = CHAIN_VALUES[chain.id]["NETWORK_SYMBOL"]
     ts = info['LAST_TXN_TIME']
-    time_ago = (chain.time() - ts) / 60
+    time_ago = int((chain.time() - ts) / 60)
     last_txn_date = datetime.utcfromtimestamp(ts).strftime("%m/%d/%Y, %H:%M:%S")
     m += f'\nBalance: {balance} {symbol}'
     m += f'\nLast txn: {time_ago} minutes ago: {last_txn_date}'
@@ -147,6 +149,7 @@ def critical_alert(code):
         m += f'Keeper balance below {str(min_balance)} {symbol} threshold\n'
     if code == 1:
         m = f'Exceeded {max_time_hrs} hrs threshold since last harvest.\n'
-    bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
+    t = bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
+    bot.pin_chat_message(chat_id,t.message_id,disable_notification=False)
 
 
