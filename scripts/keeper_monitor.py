@@ -32,7 +32,7 @@ CHAIN_VALUES = {
     250: {
         "NETWORK_NAME": "Fantom",
         "NETWORK_SYMBOL": "FTM",
-        "TIME_SINCE_TXN_THRESHOLD": 60 * 60,
+        "TIME_SINCE_TXN_THRESHOLD": 60 * 15,
         "EOA": "0x000004e4d96d663C809Cbc8D773a764A89D0b37f",
         "JOB": "0x57419Fb50Fa588Fc165AcC26449B2Bf4C7731458",
         "EMOJI": "👻",
@@ -93,10 +93,11 @@ def main():
             ERROR_CODES[0] = False
 
         # NO TXN SENT IN EXPECTED TIMEFRAME
+        time_threshold = CHAIN_VALUES[chain.id]["TIME_SINCE_TXN_THRESHOLD"]
         if INFO["BALANCE"] != last_balance:
                 INFO["LAST_TXN_TIME"] = chain.time()
                 ERROR_CODES[1] = False
-        elif chain.time() - INFO["LAST_TXN_TIME"] > CHAIN_VALUES[chain.id]["TIME_SINCE_TXN_THRESHOLD"] and not INFO["FIRST_RUN"]:
+        elif chain.time() - INFO["LAST_TXN_TIME"] > time_threshold and not INFO["FIRST_RUN"] and len(workable_strats) > 0:
             if not ERROR_CODES[1]:
                 ERROR_CODES[1] = True
                 critical_alert(1) # Don't re-send if already sent
