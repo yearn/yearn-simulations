@@ -136,7 +136,6 @@ def info_alert(info):
         unworked = info['UNWORKED']
         for u in unworked:
             m += f'{u}\n'
-        m = f'info:'
     else:
         m += f'\nNo unworked strategies ✅\n'
     bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
