@@ -149,7 +149,7 @@ def critical_alert(code, info):
         symbol = CHAIN_VALUES[chain.id]["NETWORK_SYMBOL"]
         m += f'Keeper balance below {str(min_balance)} {symbol} threshold\n'
     if code == 1:
-        m = f'Exceeded {max_time_hrs} hrs threshold since last harvest.\n'
+        m = f'Exceeded {max_time_hrs} hrs threshold since last txn with unworked strategies.\n'
     unworked = info['UNWORKED']
     if len(unworked) > 0:
         m += f'\nUnworked strategies:\n'
