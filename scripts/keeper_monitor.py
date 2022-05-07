@@ -62,6 +62,7 @@ def check_pre_existing_errors():
 
 ignore_list = [
     "0x1537a93ddC44d667A68517e16085a9F5A00c28D6",
+    "0x4CE40A36A018457F8E0AA7C4a12Cc7ebf228B20F",
 ]
 
 def main():
