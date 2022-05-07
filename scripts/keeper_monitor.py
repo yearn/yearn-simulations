@@ -156,7 +156,6 @@ def critical_alert(code, info):
         unworked = info['UNWORKED']
         for u in unworked:
             m += f'{u}\n'
-        m = f'info:'
     t = bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
     bot.pin_chat_message(chat_id,t.message_id,disable_notification=False)
 
