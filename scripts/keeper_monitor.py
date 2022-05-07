@@ -60,6 +60,10 @@ def check_pre_existing_errors():
             return True
     return False
 
+ignore_list = [
+    "0x1537a93ddC44d667A68517e16085a9F5A00c28D6",
+]
+
 def main():
     key = os.getenv("WAVEY_ALERTS_BOT_KEY")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID_KEEPER")
@@ -72,6 +76,8 @@ def main():
         workable_strats = []
         for s in all_strats:
             if job.workable(s):
+                if s in ignore_list:
+                    continue
                 workable_strats.append(s)
 
         INFO["UNWORKED"] = workable_strats
