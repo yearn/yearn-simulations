@@ -100,7 +100,7 @@ def main():
         elif chain.time() - INFO["LAST_TXN_TIME"] > time_threshold and not INFO["FIRST_RUN"] and len(workable_strats) > 0:
             if not ERROR_CODES[1]:
                 ERROR_CODES[1] = True
-                critical_alert(1) # Don't re-send if already sent
+                critical_alert(1, INFO) # Don't re-send if already sent
             
 
         # HEALTH RESTORED
@@ -109,7 +109,7 @@ def main():
         
         if INFO["FIRST_RUN"]:
             INFO["FIRST_RUN"] = False
-        else:
+        elif not check_pre_existing_errors():
             info_alert(INFO)
 
         print(INFO)
@@ -141,7 +141,7 @@ def info_alert(info):
         m += f'\nNo unworked strategies ✅\n'
     bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
 
-def critical_alert(code):
+def critical_alert(code, info):
     max_time_hrs = CHAIN_VALUES[chain.id]["TIME_SINCE_TXN_THRESHOLD"] / 60 / 60
     m = '🚨\n'
     if code == 0:
@@ -150,6 +150,13 @@ def critical_alert(code):
         m += f'Keeper balance below {str(min_balance)} {symbol} threshold\n'
     if code == 1:
         m = f'Exceeded {max_time_hrs} hrs threshold since last harvest.\n'
+    unworked = info['UNWORKED']
+    if len(unworked) > 0:
+        m += f'\nUnworked strategies:\n'
+        unworked = info['UNWORKED']
+        for u in unworked:
+            m += f'{u}\n'
+        m = f'info:'
     t = bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
     bot.pin_chat_message(chat_id,t.message_id,disable_notification=False)
 
