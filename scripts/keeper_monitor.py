@@ -141,7 +141,7 @@ def main():
         print(INFO)
         print(ERROR_CODES)
         
-        time.sleep(2)
+        time.sleep(5*60)
 
 def send_healthy():
     m = f'healthy'
