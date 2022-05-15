@@ -5,13 +5,14 @@ from datetime import datetime, timezone
 from brownie import (chain,web3, Contract, accounts,ZERO_ADDRESS)
 
 def main():
-    print("hi", flush=True)
+    print("Starting...", flush=True)
     load_dotenv(find_dotenv())
-    is_prod = os.environ.get("ENV")
+    is_prod = os.environ.get("ENV") == "PROD"
     telegram_bot_key = os.environ.get("WAVEY_ALERTS_BOT_KEY")
     chat_id = "-1001545486943"
-    hot_account = accounts.load('scream', os.getenv('PASSWORD'))
+    hot_account = accounts.load('scream', os.getenv('PASSWORD_SCREAM'))
     count = 0
+    price = 0
     log_time = 100
     usd_threshold = 1_000 # USD amount we bother sending txn for
 
@@ -45,8 +46,7 @@ def main():
             should_fetch_new_prices = count % 10_000 == 0
 
             tx_params = {'from': hot_account}
-            tx_params['priority_fee'] = 9e9
-            tx_params['max_fee'] = 250e9
+            tx_params['gas_price'] = 3_000e9
 
             adjusted_balance = underlying.balanceOf(m) / 10**decimals
             val_in_strat = strategy.estimatedTotalAssets() / 10**decimals
@@ -65,8 +65,9 @@ def main():
             # Send transaction if we are over threshold
             if usd_val >= usd_threshold and val_in_strat * price > usd_threshold:
                 try:
-                    tx = m.harvest(tx_params)
-                    message = f'Transaction mined! \n{sym} {strategy.name()}'
+                    tx = strategy.harvest(tx_params)
+                    debt_payment = tx.events["Harvested"]["debtPayment"]
+                    message = f'Transaction mined! \n{sym} {strategy.name()}\n\nDebt Payment: {debt_payment/10**decimals}'
                 except:
                     message = f'error sending a transaction.\n{sym} {strategy.name()}'
                 if is_prod:
