@@ -14,7 +14,10 @@ def main():
     count = 0
     log_time = 100
     usd_threshold = 1_000 # USD amount we bother sending txn for
+
     oracle = Contract("0x57AA88A0810dfe3f9b71a9b179Dd8bF5F956C46A")
+
+    # Markets
     scDAI = Contract("0x8D9AED9882b4953a0c9fa920168fa1FDfA0eBE75")
     scDOLA = Contract("0x5A3B9Dcdd462f264eC1bD56D618BF4552C2EaF8A")
     scFRAX = Contract("0x383D965C8D2ac0A9c1F6930ad10943606BcA4cB7")
@@ -37,7 +40,6 @@ def main():
             sym = underlying.symbol()
             decimals = underlying.decimals()
             strategy = strategies[i]
-            est_wbtc_claim = int(m.balanceOf(strategy) * m.exchangeRateStored() / decimals) / 10**8
             message = ""
             count = count + 1
             should_fetch_new_prices = count % 10_000 == 0
