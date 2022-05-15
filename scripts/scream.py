@@ -9,8 +9,8 @@ def main():
     load_dotenv(find_dotenv())
     is_prod = os.environ.get("ENV")
     telegram_bot_key = os.environ.get("WAVEY_ALERTS_BOT_KEY")
-    chat_id = "-617759416"
-    hot_account = accounts.load('inverse', os.getenv('PASSWORD'))
+    chat_id = "-1001545486943"
+    hot_account = accounts.load('scream', os.getenv('PASSWORD'))
     count = 0
     log_time = 100
     usd_threshold = 1_000 # USD amount we bother sending txn for
