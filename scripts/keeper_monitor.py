@@ -65,20 +65,6 @@ ignore_list = [
     "0x4CE40A36A018457F8E0AA7C4a12Cc7ebf228B20F",
 ]
 
-def check_it():
-    h = chain.height
-    job = Contract(CHAIN_VALUES[chain.id]["JOB"])
-    s = "0x7114cAD096731F4d0B8E0De6e7CeDc189A462dce"
-    s2 = "0x4bd6976358e419Ce96103c70B776C273A9f4a8AD"
-    for i in range(0,500_000):
-        block = h-i
-        if block % 1000 == 0:
-            print("checking block", str(block))
-        if job.workable(s, block_identifier=block):
-            print(s, block)
-        if job.workable(s2, block_identifier=block):
-            print(s2, block)
-
 def main():
     key = os.getenv("WAVEY_ALERTS_BOT_KEY")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID_KEEPER")
@@ -140,7 +126,6 @@ def main():
 
         print(INFO)
         print(ERROR_CODES)
-        
         time.sleep(5*60)
 
 def send_healthy():
