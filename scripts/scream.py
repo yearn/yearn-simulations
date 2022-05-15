@@ -65,7 +65,7 @@ def main():
             # Send transaction if we are over threshold
             if usd_val >= usd_threshold and val_in_strat * price > usd_threshold:
                 try:
-                    tx = m.harvest()
+                    tx = m.harvest(tx_params)
                     message = f'Transaction mined! \n{sym} {strategy.name()}'
                 except:
                     message = f'error sending a transaction.\n{sym} {strategy.name()}'
