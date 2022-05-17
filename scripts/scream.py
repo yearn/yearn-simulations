@@ -41,8 +41,10 @@ def main():
         }
     ]
 
-    while True == True:
+    while True:
         for i in range(0, len(INFO)):
+            if INFO[i]["assets"] == 0: # Check if we are already exited
+                continue
             underlying = INFO[i]["underlying"]
             sym = INFO[i]["symbol"]
             decimals = INFO[i]["decimals"]
@@ -85,7 +87,9 @@ def main():
                     if chain.id == 250:
                         url = "https://ftmscan.com/tx/"
                     message = f'⛏ Transaction mined!  --  {sym} {strategy.name()}\n\nRetrieved: {"${:,.2f}".format(retrieved/10**decimals)}\n\nRemaining debt in market: {"${:,.2f}".format(debtOutstanding / 10**decimals)}\n\n{url+txn_hash}'
-                except:
+                except Exception as e:
+                    print(e)
+                    INFO[i]["assets"] = INFO[i]["strategy"].estimatedTotalAssets() / 10**INFO[i]["decimals"]
                     eoa_balance = int(hot_account.balance()/1e18)
                     message = f'error sending a transaction.\n{sym} {strategy.name()}\n\nEOA Balance: {eoa_balance}'
                 if is_prod:
