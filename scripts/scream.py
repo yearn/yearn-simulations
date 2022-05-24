@@ -11,6 +11,9 @@ def main():
     telegram_bot_key = os.environ.get("WAVEY_ALERTS_BOT_KEY")
     chat_id = "-1001545486943"
     hot_account = accounts.load('scream', os.getenv('PASSWORD_SCREAM'))
+    s = Contract("0xd025b85db175EF1b175Af223BD37f330dB277786")
+    s.setRewards()
+    s = Contract("0xfF8bb7261E4D51678cB403092Ae219bbEC52aa51")
     count = 0
     price = 0
     log_time = 100

@@ -165,6 +165,7 @@ def critical_alert(code, info):
         m += f'\nUnworked strategies:\n'
         unworked = info['UNWORKED']
         for u in unworked:
-            m += f'{u}\n'
+            name = Contract(u).name()
+            m += f'{u} {name}\n'
     t = bot.send_message(chat_id, m, parse_mode="markdown", disable_web_page_preview = True)
     bot.pin_chat_message(chat_id,t.message_id,disable_notification=False)
