@@ -11,21 +11,25 @@ redeemer = Contract('0xC3C7a349BCAb2a039f466525a106742800fa16f6', owner=user)
 scdai = Contract("0x8D9AED9882b4953a0c9fa920168fa1FDfA0eBE75")
 dai = Contract(scdai.underlying())
 gov = '0xC0E2830724C946a6748dDFE09753613cd38f6767'
+tx_params = {'from': user}
+tx_params['gas_limit'] = 5_000_000
+
 
 def stats(block):
     print(f'[{block:,d}] balance={user.balance() / 1e18:,.2f} ftm  trapped={scdai.balanceOfUnderlying.call(gov)/ 1e18:,.0f} dai  liquidity={dai.balanceOf(scdai) / 1e18:,.0f} dai') 
 
-stats(chain.height)
-
-for block in chain.new_blocks():
-    if block.number % 20 == 0:
-        stats(block.number)
-    if redeemer.shouldRedeem():
-        redeemer.redeemMax()
+# for block in chain.new_blocks():
+#     if block.number % 20 == 0:
+#         stats(block.number)
+#     if redeemer.shouldRedeem():
+#         redeemer.redeemMax()
 
 while True:
     if redeemer.shouldRedeem():
-        redeemer.redeemMax()
+        redeemer.redeemMax(tx_params)
+    block = chain.height
+    if block % 20 == 0:
+        stats(block)
     time.sleep(1)
 
 # def main():

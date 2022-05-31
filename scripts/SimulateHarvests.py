@@ -271,6 +271,7 @@ def post_harvest(data):
     data.post.total_fee_delta = (data.post.treasury_fee_delta + data.post.strategist_fee_delta)
     
     # Calculate and format results
+    percent_pre_fee = 0
     if data.pre.debt > 0:
         net_gain = data.post.gain_delta - data.post.loss_delta
         percent_pre_fee = net_gain / data.pre.debt
