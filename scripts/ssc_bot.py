@@ -81,7 +81,8 @@ def main():
                 strat.setDoHealthCheck(False, {'from': gov})
                 tx = strat.harvest({'from': gov})
             except:
-                tx = strat.harvest({'from': gov})
+                pass
+                # tx = strat.harvest({'from': gov})
         except:
             string = "\n\n" + strat.name() + s + "\n\U0001F6A8 Failed Harvest!\n"
             print(string)
@@ -117,7 +118,6 @@ def main():
             strat = Contract(yvboost_strat)
             ms = accounts.at(strat.strategist(), force=True)
             yvecrv = Contract(strat.want())
-            yvecrv.transfer(ms, 1e18, {"from": ms})
             if strat.getClaimable3Crv() > 0:
                 harvest_indicator = "\U0001F468" + "\u200D" + "\U0001F33E "
             elif  datetime.datetime.today().weekday() == 3 and hours_since_last > 24:
