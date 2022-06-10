@@ -194,7 +194,7 @@ def pre_harvest(data):
     data.pre.treasury_fee_balance = vault.balanceOf(data.treasury)
     data.pre.strategist_fee_balance = vault.balanceOf(strategy)
     try:
-        data.pre.harvest_trigger = strategy.harvest_trigger(2_000_000 * 300 * 1e9)
+        data.pre.harvest_trigger = strategy.harvest_trigger(2_000_000)
     except:
         data.pre.harvest_trigger_ready = "Broken"
     if data.hasHealthChecks:
